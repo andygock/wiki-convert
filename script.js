@@ -1,9 +1,14 @@
 (() => {
   "use strict";
 
+  // All application data is deliberately browser-local. Bumping this key creates
+  // a clean storage namespace when the saved-state schema changes.
   const STORAGE_KEY = "wikiconvert-state-v1";
+  // Debounce typing so auto-convert runs only after the user pauses briefly.
   const AUTO_CONVERT_DELAY_MS = 450;
 
+  // This is both the first-run state and the schema fallback for older/corrupt
+  // saved data. Keep every user-persisted field represented here.
   const defaultState = {
     currentView: "converter",
     inputHtml: "",
@@ -20,6 +25,7 @@
     },
   };
 
+  // View-specific text is centralised so navigation only needs a view name.
   const pageMetadata = {
     converter: {
       title: "MediaWiki Converter",
@@ -39,6 +45,8 @@
     },
   };
 
+  // Cache every DOM dependency once. The rest of the script refers to this map
+  // instead of repeatedly querying the document.
   const elements = {
     sidebar: document.querySelector("#sidebar"),
     sidebarBackdrop: document.querySelector("#sidebar-backdrop"),
@@ -82,10 +90,13 @@
     toastRegion: document.querySelector("#toast-region"),
   };
 
+  // Runtime-only flags are not stored: a page reload must never resume an
+  // in-progress conversion or a stale debounce timer.
   let state = loadState();
   let autoConvertTimer = null;
   let isConverting = false;
 
+  // Read and validate the local draft, merging it onto the current defaults.
   function loadState() {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -110,6 +121,7 @@
     }
   }
 
+  // Persist the complete state and reflect whether browser storage succeeded.
   function persistState() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -119,6 +131,7 @@
     }
   }
 
+  // Apply a shallow state update; callers can suppress storage during startup.
   function setState(updates, { persist = true } = {}) {
     state = {
       ...state,
@@ -130,6 +143,7 @@
     }
   }
 
+  // Restore UI from state, calculate derived UI, then attach event handlers.
   function initialise() {
     hydrateSettings();
     restoreDraft();
@@ -141,6 +155,7 @@
     bindEvents();
   }
 
+  // Copy persisted settings into the settings form controls.
   function hydrateSettings() {
     elements.settingAutoConvert.checked = state.settings.autoConvert;
     elements.settingPreserveLineBreaks.checked =
@@ -151,6 +166,7 @@
     elements.settingHistoryLimit.value = String(state.settings.historyLimit);
   }
 
+  // Rebuild the editable rich input and output textarea from a saved draft.
   function restoreDraft() {
     if (state.inputHtml || state.inputText) {
       showRichInput();
@@ -169,6 +185,7 @@
     }
   }
 
+  // Register all delegated navigation, editor, clipboard, history, and shortcut handlers.
   function bindEvents() {
     elements.nav.addEventListener("click", handleNavigation);
     elements.mobileMenuButton.addEventListener("click", toggleMobileMenu);
@@ -223,6 +240,7 @@
     });
   }
 
+  // Use event delegation to identify a clicked view button in the sidebar.
   function handleNavigation(event) {
     const button = event.target.closest("[data-view]");
 
@@ -234,6 +252,7 @@
     closeMobileMenu();
   }
 
+  // Show exactly one view and synchronise nav accessibility state and page heading.
   function switchView(viewName, shouldPersist = true) {
     if (!pageMetadata[viewName]) {
       viewName = "converter";
@@ -272,6 +291,7 @@
     }
   }
 
+  // Toggle the small-screen sidebar and its backdrop as a single UI state.
   function toggleMobileMenu() {
     const willOpen = !elements.sidebar.classList.contains("open");
     elements.sidebar.classList.toggle("open", willOpen);
@@ -279,22 +299,26 @@
     elements.mobileMenuButton.setAttribute("aria-expanded", String(willOpen));
   }
 
+  // Close the small-screen sidebar, including its accessibility state.
   function closeMobileMenu() {
     elements.sidebar.classList.remove("open");
     elements.sidebarBackdrop.classList.add("hidden");
     elements.mobileMenuButton.setAttribute("aria-expanded", "false");
   }
 
+  // Replace the empty-state instructions with the contenteditable input.
   function showRichInput() {
     elements.dropInstructions.classList.add("hidden");
     elements.richInput.classList.remove("hidden");
   }
 
+  // Reveal the editor and place the typing caret in it.
   function showAndFocusInput() {
     showRichInput();
     elements.richInput.focus();
   }
 
+  // Save both rich and plain representations, then refresh all input-derived UI.
   function handleRichInputChange() {
     const inputHtml = elements.richInput.innerHTML;
     const inputText = normalisePlainText(elements.richInput.innerText);
@@ -315,6 +339,7 @@
     scheduleAutoConvert();
   }
 
+  // Prefer sanitised HTML on paste so inline formatting survives conversion safely.
   function handleRichInputPaste(event) {
     const clipboard = event.clipboardData;
 
@@ -336,6 +361,7 @@
     handleRichInputChange();
   }
 
+  // Allow a drop and give users visual feedback while data is over the target.
   function handleDragEnter(event) {
     event.preventDefault();
     event.stopPropagation();
@@ -347,6 +373,7 @@
     elements.dropZone.classList.add("drag-active");
   }
 
+  // Remove drag feedback only when the pointer actually leaves the drop zone.
   function handleDragExit(event) {
     event.preventDefault();
     event.stopPropagation();
@@ -361,6 +388,7 @@
     elements.dropZone.classList.remove("drag-active");
   }
 
+  // Accept dropped clipboard-like data first, otherwise read one supported text file.
   async function handleDrop(event) {
     event.preventDefault();
     event.stopPropagation();
@@ -431,6 +459,7 @@
     }
   }
 
+  // Read rich clipboard formats when permission permits; otherwise guide manual paste.
   async function pasteFromClipboard() {
     if (!navigator.clipboard) {
       showAndFocusInput();
@@ -493,6 +522,7 @@
     }
   }
 
+  // Put supplied content in the editor, choosing HTML when it is available.
   function applyInputContent({ html = "", text = "" }) {
     showRichInput();
 
@@ -506,6 +536,7 @@
     elements.richInput.focus();
   }
 
+  // Clear both editor/output and cancel pending automatic work.
   function clearInput() {
     clearTimeout(autoConvertTimer);
     elements.richInput.innerHTML = "";
@@ -527,6 +558,7 @@
     showToast("Input and output cleared.", "info");
   }
 
+  // Debounce auto-conversion; empty input and disabled settings never schedule it.
   function scheduleAutoConvert() {
     clearTimeout(autoConvertTimer);
 
@@ -539,6 +571,7 @@
     }, AUTO_CONVERT_DELAY_MS);
   }
 
+  // Convert the current draft once, keeping the overlay visible for at least one paint.
   async function convertContent() {
     if (isConverting || !state.inputText.trim()) {
       return;
@@ -589,6 +622,8 @@
     }
   }
 
+  // Conversion pipeline: parse the untrusted fragment, discard non-content,
+  // annotate Word-specific structures, walk the DOM, then tidy the result.
   function convertHtmlToMediaWiki(html) {
     const parser = new DOMParser();
     const documentNode = parser.parseFromString(
@@ -599,6 +634,8 @@
     removeNonContentNodes(documentNode.body);
     normaliseWordLists(documentNode.body);
 
+    // Context travels through the recursive walk. It changes how text, breaks,
+    // and nested structures are rendered without modifying the source DOM.
     const context = {
       listDepth: 0,
       inPre: false,
@@ -613,12 +650,14 @@
     return output;
   }
 
+  // Convert direct children in document order, preserving their inline sequence.
   function convertChildren(parent, context) {
     return [...parent.childNodes]
       .map((node) => convertNode(node, context))
       .join("");
   }
 
+  // Dispatch one DOM node to its MediaWiki equivalent; unknown containers unwrap.
   function convertNode(node, context) {
     if (node.nodeType === Node.TEXT_NODE) {
       return convertTextNode(node, context);
@@ -635,6 +674,8 @@
       return "";
     }
 
+    // Line breaks inside <pre> are literal. Elsewhere the setting determines
+    // whether a visible MediaWiki HTML break is needed.
     if (tag === "br") {
       return context.inPre
         ? "\n"
@@ -643,6 +684,7 @@
           : "\n";
     }
 
+    // HTML heading numbers map directly to the corresponding count of '='.
     if (/^h[1-6]$/.test(tag)) {
       const level = Number(tag.slice(1));
       const marker = "=".repeat(level);
@@ -726,6 +768,8 @@
       return convertTable(element, context);
     }
 
+    // Images cannot be reliably converted to wiki file references, so retain
+    // useful alt text as a harmless comment rather than silently losing it.
     if (tag === "img") {
       const alt = normaliseInlineWhitespace(
         element.getAttribute("alt") || element.getAttribute("title") || "",
@@ -753,6 +797,7 @@
     return convertChildren(element, context);
   }
 
+  // Preserve preformatted text; otherwise collapse HTML whitespace to inline text.
   function convertTextNode(node, context) {
     const parentTag = node.parentElement?.tagName?.toLowerCase() ?? "";
 
@@ -763,6 +808,7 @@
     return normaliseInlineWhitespace(node.nodeValue || "");
   }
 
+  // Handle ordinary paragraphs plus Microsoft Word heading/list conventions.
   function convertParagraph(element, context) {
     const headingLevel = detectWordHeadingLevel(element);
 
@@ -795,6 +841,7 @@
     return content ? `\n${content}\n\n` : "\n";
   }
 
+  // Produce safe external/anchor links, respecting the external-links preference.
   function convertLink(element, context) {
     const href = (element.getAttribute("href") || "").trim();
     const label = cleanInlineMarkup(convertChildren(element, context));
@@ -831,6 +878,7 @@
     return fallback;
   }
 
+  // Recursively render HTML lists; concatenated markers represent nesting in MediaWiki.
   function convertList(listElement, context, prefix = "") {
     const listTag = listElement.tagName.toLowerCase();
     const ownMarker = listTag === "ol" ? "#" : "*";
@@ -845,6 +893,7 @@
       const inlineParts = [];
       const nestedLists = [];
 
+      // Convert the item's own text separately so nested lists start on later lines.
       [...item.childNodes].forEach((child) => {
         if (
           child.nodeType === Node.ELEMENT_NODE &&
@@ -883,6 +932,7 @@
     return lines.length ? `\n${lines.join("\n")}\n\n` : "";
   }
 
+  // Convert only rows owned by this table, preventing nested tables from leaking in.
   function convertTable(tableElement, context) {
     const rows = [...tableElement.querySelectorAll("tr")].filter(
       (row) => row.closest("table") === tableElement,
@@ -944,6 +994,7 @@
     return `\n${lines.join("\n")}\n\n`;
   }
 
+  // Preserve supported structural cell attributes in MediaWiki table syntax.
   function convertTableCellAttributes(cell) {
     const attributes = [];
 
@@ -961,6 +1012,7 @@
     return attributes.join(" ");
   }
 
+  // Make multiline cell content safe on a single MediaWiki table-cell line.
   function cleanTableCellContent(content) {
     return cleanInlineMarkup(content)
       .replace(/\n{2,}/g, "<br />")
@@ -968,6 +1020,7 @@
       .trim();
   }
 
+  // Remove executable/interactive markup and unsafe URL schemes before DOM insertion.
   function sanitiseInputHtml(html) {
     if (!html) {
       return "";
@@ -1008,6 +1061,7 @@
     return documentNode.body.innerHTML;
   }
 
+  // Second defensive cleanup after parsing, also dropping empty formatting spans.
   function removeNonContentNodes(root) {
     root
       .querySelectorAll(
@@ -1026,6 +1080,7 @@
     });
   }
 
+  // Mark Word-style list paragraphs so paragraph conversion can render list markers.
   function normaliseWordLists(root) {
     const paragraphs = [...root.querySelectorAll("p")];
 
@@ -1039,6 +1094,7 @@
     });
   }
 
+  // Infer Word heading level from class/style names emitted by Office HTML.
   function detectWordHeadingLevel(element) {
     const className = element.className || "";
     const styleName = element.getAttribute("style") || "";
@@ -1051,6 +1107,7 @@
     return match ? Number(match[1]) : 0;
   }
 
+  // Identify Word or visibly-prefixed list paragraphs and estimate their nesting level.
   function detectWordListParagraph(element) {
     if (element.dataset.wikiListType) {
       return {
@@ -1104,16 +1161,19 @@
     };
   }
 
+  // Detect presentational underline styles that do not use a <u> element.
   function isUnderlineElement(element) {
     const style = element.getAttribute("style") || "";
     return /text-decoration(?:-line)?\s*:[^;]*underline/i.test(style);
   }
 
+  // Detect presentational strike styles that do not use semantic strike tags.
   function isStrikethroughElement(element) {
     const style = element.getAttribute("style") || "";
     return /text-decoration(?:-line)?\s*:[^;]*line-through/i.test(style);
   }
 
+  // Normalise whitespace and accidental repeated apostrophe markup in inline output.
   function cleanInlineMarkup(value) {
     return value
       .replace(/\u00a0/g, " ")
@@ -1125,6 +1185,7 @@
       .replace(/''{4,}/g, "''");
   }
 
+  // Apply document-level spacing rules after every node has been converted.
   function cleanMediaWikiOutput(value) {
     return normaliseNewlines(value)
       .replace(/[ \t]+$/gm, "")
@@ -1136,6 +1197,7 @@
       .trim();
   }
 
+  // Decode the small safe entity set that can remain after HTML serialisation.
   function decodeCommonEntities(value) {
     return value
       .replace(/&nbsp;/gi, " ")
@@ -1146,6 +1208,7 @@
       .replace(/&#39;/gi, "'");
   }
 
+  // Collapse all inline whitespace (including newlines) to one normal space.
   function normaliseInlineWhitespace(value) {
     return value
       .replace(/\u00a0/g, " ")
@@ -1153,6 +1216,7 @@
       .replace(/[ \t\f\v\n]+/g, " ");
   }
 
+  // Produce a stable plain-text form for state, statistics, and empty checks.
   function normalisePlainText(value) {
     return normaliseNewlines(value)
       .replace(/\u00a0/g, " ")
@@ -1160,10 +1224,12 @@
       .trim();
   }
 
+  // Convert Windows and legacy Mac line endings to the single internal form.
   function normaliseNewlines(value) {
     return String(value).replace(/\r\n?/g, "\n");
   }
 
+  // Escape text before it is used as an HTML fallback source fragment.
   function escapeHtml(value) {
     return String(value)
       .replace(/&/g, "&amp;")
@@ -1173,6 +1239,7 @@
       .replace(/'/g, "&#39;");
   }
 
+  // Escape only characters that could terminate/change HTML embedded in wiki markup.
   function escapeWikiHtml(value) {
     return String(value)
       .replace(/&/g, "&amp;")
@@ -1180,10 +1247,12 @@
       .replace(/>/g, "&gt;");
   }
 
+  // Keep image-alt comments valid by removing the MediaWiki comment terminator.
   function escapeWikiComment(value) {
     return String(value).replace(/--/g, "—");
   }
 
+  // Best-effort plain-text extraction for dropped RTF; this is not a full RTF parser.
   function stripRtfControlWords(value) {
     if (!/^\s*\{\\rtf/i.test(value)) {
       return value;
@@ -1203,6 +1272,7 @@
       .trim();
   }
 
+  // Insert cleaned paste HTML at the editor caret and restore the caret after it.
   function insertHtmlAtSelection(html) {
     const selection = window.getSelection();
 
@@ -1232,6 +1302,7 @@
     }
   }
 
+  // Treat manual output edits as the current saved draft rather than overwriting them.
   function handleOutputChange() {
     setState({
       output: elements.outputTextarea.value,
@@ -1242,6 +1313,7 @@
     updateButtons();
   }
 
+  // Copy output using the modern Clipboard API, with selection-based legacy fallback.
   async function copyOutput() {
     const output = elements.outputTextarea.value;
 
@@ -1272,6 +1344,7 @@
     }
   }
 
+  // Prepend a deduplicated snapshot and enforce the configured local history limit.
   function saveHistoryEntry(output) {
     if (!state.settings.saveHistory || !output.trim()) {
       return;
@@ -1304,6 +1377,7 @@
     });
   }
 
+  // Turn first meaningful markup line into a compact, human-readable history label.
   function deriveHistoryTitle(output) {
     const firstMeaningfulLine =
       output
@@ -1323,6 +1397,7 @@
       : firstMeaningfulLine;
   }
 
+  // Recreate the history list with textContent to keep persisted content inert.
   function renderHistory() {
     elements.historyList.textContent = "";
     elements.clearHistoryButton.disabled = state.history.length === 0;
@@ -1377,6 +1452,7 @@
     elements.historyList.append(fragment);
   }
 
+  // Create consistently labelled history action buttons for delegated click handling.
   function createIconButton(label, action, text, extraClass = "") {
     const button = document.createElement("button");
     button.type = "button";
@@ -1388,6 +1464,7 @@
     return button;
   }
 
+  // Restore, copy, or delete the selected history entry using its stable ID.
   async function handleHistoryAction(event) {
     const button = event.target.closest("[data-history-action]");
     const item = event.target.closest("[data-history-id]");
@@ -1446,6 +1523,7 @@
     }
   }
 
+  // Remove all saved conversion snapshots without affecting the active draft.
   function clearHistory() {
     if (!state.history.length) {
       return;
@@ -1459,6 +1537,7 @@
     showToast("Conversion history cleared.", "info");
   }
 
+  // Read settings controls, trim history if needed, and trigger any newly enabled auto-convert.
   function updateSettings() {
     const settings = {
       autoConvert: elements.settingAutoConvert.checked,
@@ -1485,6 +1564,7 @@
     showToast("Settings saved locally.", "success");
   }
 
+  // Return storage and UI to defaults, including deleting the old persisted payload.
   function resetApplication() {
     localStorage.removeItem(STORAGE_KEY);
     state = structuredClone(defaultState);
@@ -1509,6 +1589,7 @@
     showToast("Application data reset.", "info");
   }
 
+  // Calculate current input word/character totals from the editor's visible text.
   function updateInputStats() {
     const text = normalisePlainText(
       elements.richInput.innerText || state.inputText || "",
@@ -1523,6 +1604,7 @@
     }`;
   }
 
+  // Calculate output line/character totals from the editable output textarea.
   function updateOutputStats() {
     const output = elements.outputTextarea.value;
     const lines = output ? output.split("\n").length : 0;
@@ -1535,6 +1617,7 @@
     }`;
   }
 
+  // Enable actions only when their prerequisite data exists and conversion is idle.
   function updateButtons() {
     const hasInput = Boolean(state.inputText.trim());
     const hasOutput = Boolean(elements.outputTextarea.value);
@@ -1545,16 +1628,19 @@
       !hasInput && !elements.outputTextarea.value;
   }
 
+  // Count whitespace-separated tokens; an empty string contains zero words.
   function countWords(value) {
     const matches = value.trim().match(/\S+/g);
     return matches ? matches.length : 0;
   }
 
+  // Update a status message and replace, rather than accumulate, its semantic style.
   function setStatus(element, message, type = "") {
     element.textContent = message;
     element.className = `status-message ${type}`.trim();
   }
 
+  // Format stored ISO dates for the UI, safely handling malformed historic data.
   function formatDateTime(isoValue) {
     const date = new Date(isoValue);
 
@@ -1568,6 +1654,7 @@
     }).format(date);
   }
 
+  // Add a transient accessible notification and schedule its own cleanup.
   function showToast(message, type = "info", duration = 3200) {
     const toast = document.createElement("div");
     toast.className = `toast ${type}`;
@@ -1581,6 +1668,7 @@
     }, duration);
   }
 
+  // Provide cross-platform Ctrl/Cmd shortcuts without intercepting unmodified typing.
   function handleKeyboardShortcuts(event) {
     const modifier = event.ctrlKey || event.metaKey;
 
@@ -1607,6 +1695,7 @@
     }
   }
 
+  // Wait two animation frames so the browser can render the conversion overlay first.
   function nextPaint() {
     return new Promise((resolve) => {
       requestAnimationFrame(() => {
