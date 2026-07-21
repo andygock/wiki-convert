@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en-AU">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Convert rich text copied from Microsoft Word and other applications into clean MediaWiki markup entirely in your browser."
+    />
+    <title>WikiConvert</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar" aria-label="Application navigation">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">W</div>
+          <div class="brand-text">
+            <p class="brand-title">WikiConvert</p>
+            <p class="brand-subtitle">Rich text to MediaWiki</p>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Main navigation">
+          <button
+            class="nav-button active"
+            type="button"
+            data-view="converter"
+            aria-current="page"
+          >
+            <span class="nav-icon" aria-hidden="true">&gt;_</span>
+            <span>Converter</span>
+          </button>
+
+          <button class="nav-button" type="button" data-view="history">
+            <span class="nav-icon" aria-hidden="true">H</span>
+            <span>History</span>
+          </button>
+
+          <button class="nav-button" type="button" data-view="settings">
+            <span class="nav-icon" aria-hidden="true">S</span>
+            <span>Settings</span>
+          </button>
+
+          <button class="nav-button" type="button" data-view="about">
+            <span class="nav-icon" aria-hidden="true">i</span>
+            <span>About</span>
+          </button>
+        </nav>
+
+        <footer class="sidebar-footer">
+          <div>Local browser processing</div>
+          <div id="storage-status">State saved locally</div>
+        </footer>
+      </aside>
+
+      <div class="sidebar-backdrop hidden" id="sidebar-backdrop"></div>
+
+      <div class="main-column">
+        <header class="topbar">
+          <div class="topbar-left">
+            <button
+              class="mobile-menu-button"
+              id="mobile-menu-button"
+              type="button"
+              aria-label="Open navigation"
+              aria-expanded="false"
+              aria-controls="sidebar"
+            >
+              ☰
+            </button>
+
+            <div class="page-heading">
+              <h1 id="page-title">MediaWiki Converter</h1>
+              <p id="page-subtitle">
+                Paste or drop formatted content and convert it locally
+              </p>
+            </div>
+          </div>
+
+          <div class="privacy-indicator" title="No data leaves this browser">
+            <span class="privacy-dot" aria-hidden="true"></span>
+            <span>Private and local</span>
+          </div>
+        </header>
+
+        <main>
+          <section
+            class="view"
+            id="view-converter"
+            data-view-container="converter"
+            aria-labelledby="page-title"
+          >
+            <div class="converter-layout">
+              <section class="panel" aria-labelledby="input-heading">
+                <header class="panel-header">
+                  <div class="panel-title">
+                    <h2 id="input-heading">Rich text input</h2>
+                    <p>Paste, type, or drop rich HTML content</p>
+                  </div>
+
+                  <div class="button-row">
+                    <button class="button" id="paste-button" type="button">
+                      Paste
+                    </button>
+                    <button
+                      class="button danger"
+                      id="clear-input-button"
+                      type="button"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </header>
+
+                <div
+                  class="drop-zone"
+                  id="drop-zone"
+                  aria-label="Rich text drop area"
+                >
+                  <div
+                    class="drop-instructions"
+                    id="drop-instructions"
+                    tabindex="0"
+                    role="button"
+                    aria-label="Click to enter rich text, or paste and drop content here"
+                  >
+                    <div class="drop-instructions-inner">
+                      <div class="drop-symbol" aria-hidden="true">↓</div>
+                      <h3>Paste or drop rich content</h3>
+                      <p>
+                        Copy formatted text from Microsoft Word, LibreOffice,
+                        websites, email clients, or other rich-text
+                        applications.
+                      </p>
+                      <p>
+                        Press <kbd>Ctrl</kbd> + <kbd>V</kbd>, click Paste, or
+                        drag content into this area.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div
+                    class="rich-input hidden"
+                    id="rich-input"
+                    contenteditable="true"
+                    role="textbox"
+                    aria-multiline="true"
+                    spellcheck="true"
+                    data-placeholder="Paste or type rich content here..."
+                  ></div>
+                </div>
+
+                <footer class="panel-footer">
+                  <span class="status-message" id="input-status">
+                    Waiting for input
+                  </span>
+
+                  <div class="stats" aria-label="Input statistics">
+                    <span id="input-words">0 words</span>
+                    <span id="input-chars">0 characters</span>
+                  </div>
+                </footer>
+              </section>
+
+              <section class="panel" aria-labelledby="output-heading">
+                <header class="panel-header">
+                  <div class="panel-title">
+                    <h2 id="output-heading">MediaWiki output</h2>
+                    <p>Clean markup without presentation styling</p>
+                  </div>
+
+                  <div class="button-row">
+                    <button
+                      class="button"
+                      id="convert-button"
+                      type="button"
+                      disabled
+                    >
+                      Convert
+                    </button>
+                    <button
+                      class="button primary"
+                      id="copy-button"
+                      type="button"
+                      disabled
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </header>
+
+                <div class="output-wrapper">
+                  <textarea
+                    class="output-textarea"
+                    id="output-textarea"
+                    aria-label="MediaWiki output"
+                    placeholder="Converted MediaWiki markup will appear here..."
+                    spellcheck="false"
+                  ></textarea>
+
+                  <div
+                    class="conversion-overlay hidden"
+                    id="conversion-overlay"
+                  >
+                    <div class="spinner-block" role="status" aria-live="polite">
+                      <div class="spinner" aria-hidden="true"></div>
+                      <span>Converting content</span>
+                    </div>
+                  </div>
+                </div>
+
+                <footer class="panel-footer">
+                  <span class="status-message" id="output-status">
+                    No conversion yet
+                  </span>
+
+                  <div class="stats" aria-label="Output statistics">
+                    <span id="output-lines">0 lines</span>
+                    <span id="output-chars">0 characters</span>
+                  </div>
+                </footer>
+              </section>
+            </div>
+          </section>
+
+          <section
+            class="view hidden"
+            id="view-history"
+            data-view-container="history"
+            aria-labelledby="page-title"
+          >
+            <div class="history-toolbar">
+              <div>
+                <h2>Conversion history</h2>
+                <p>Recent conversions stored only in this browser.</p>
+              </div>
+
+              <button
+                class="button danger"
+                id="clear-history-button"
+                type="button"
+              >
+                Clear history
+              </button>
+            </div>
+
+            <div class="history-list" id="history-list"></div>
+          </section>
+
+          <section
+            class="view hidden"
+            id="view-settings"
+            data-view-container="settings"
+            aria-labelledby="page-title"
+          >
+            <div class="settings-grid">
+              <article class="settings-card">
+                <header>
+                  <h2>Conversion options</h2>
+                  <p>Control how rich content becomes MediaWiki markup</p>
+                </header>
+
+                <div class="settings-content">
+                  <div class="setting-row">
+                    <div class="setting-copy">
+                      <label for="setting-auto-convert"
+                        >Convert automatically</label
+                      >
+                      <p>
+                        Run conversion shortly after pasted content changes.
+                      </p>
+                    </div>
+
+                    <label class="toggle">
+                      <input id="setting-auto-convert" type="checkbox" />
+                      <span class="toggle-track" aria-hidden="true"></span>
+                    </label>
+                  </div>
+
+                  <div class="setting-row">
+                    <div class="setting-copy">
+                      <label for="setting-preserve-line-breaks">
+                        Preserve explicit line breaks
+                      </label>
+                      <p>Convert HTML line breaks to MediaWiki line breaks.</p>
+                    </div>
+
+                    <label class="toggle">
+                      <input
+                        id="setting-preserve-line-breaks"
+                        type="checkbox"
+                      />
+                      <span class="toggle-track" aria-hidden="true"></span>
+                    </label>
+                  </div>
+
+                  <div class="setting-row">
+                    <div class="setting-copy">
+                      <label for="setting-external-links">
+                        Use labelled external links
+                      </label>
+                      <p>
+                        Convert hyperlinks to MediaWiki external-link syntax.
+                      </p>
+                    </div>
+
+                    <label class="toggle">
+                      <input id="setting-external-links" type="checkbox" />
+                      <span class="toggle-track" aria-hidden="true"></span>
+                    </label>
+                  </div>
+
+                  <div class="setting-row">
+                    <div class="setting-copy">
+                      <label for="setting-table-class"
+                        >Table markup style</label
+                      >
+                      <p>
+                        Select the class added to generated MediaWiki tables.
+                      </p>
+                    </div>
+
+                    <select class="select" id="setting-table-class">
+                      <option value="wikitable">wikitable</option>
+                      <option value="wikitable sortable">
+                        wikitable sortable
+                      </option>
+                      <option value="">No class</option>
+                    </select>
+                  </div>
+                </div>
+              </article>
+
+              <article class="settings-card">
+                <header>
+                  <h2>Storage</h2>
+                  <p>Manage browser-local application data</p>
+                </header>
+
+                <div class="settings-content">
+                  <div class="setting-row">
+                    <div class="setting-copy">
+                      <label for="setting-save-history"
+                        >Save conversion history</label
+                      >
+                      <p>Retain recent output for reuse after refreshing.</p>
+                    </div>
+
+                    <label class="toggle">
+                      <input id="setting-save-history" type="checkbox" />
+                      <span class="toggle-track" aria-hidden="true"></span>
+                    </label>
+                  </div>
+
+                  <div class="setting-row">
+                    <div class="setting-copy">
+                      <label for="setting-history-limit">History limit</label>
+                      <p>Maximum number of recent conversions to retain.</p>
+                    </div>
+
+                    <select class="select" id="setting-history-limit">
+                      <option value="5">5 conversions</option>
+                      <option value="10">10 conversions</option>
+                      <option value="20">20 conversions</option>
+                      <option value="50">50 conversions</option>
+                    </select>
+                  </div>
+
+                  <div class="setting-row">
+                    <div class="setting-copy">
+                      <span class="label">Reset application</span>
+                      <p>Delete input, output, history, and saved settings.</p>
+                    </div>
+
+                    <button
+                      class="button danger"
+                      id="reset-application-button"
+                      type="button"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section
+            class="view hidden"
+            id="view-about"
+            data-view-container="about"
+            aria-labelledby="page-title"
+          >
+            <div class="about-grid">
+              <article class="about-card">
+                <header>
+                  <h2>Supported conversions</h2>
+                  <p>Common rich-text structures recognised by the converter</p>
+                </header>
+
+                <div class="about-content">
+                  <ul>
+                    <li>Headings from level 1 through level 6</li>
+                    <li>
+                      Bold, italic, underline, strikethrough, and inline code
+                    </li>
+                    <li>Ordered, unordered, and nested lists</li>
+                    <li>Tables with header and data cells</li>
+                    <li>Hyperlinks, block quotations, and preformatted text</li>
+                    <li>Paragraphs and explicit line breaks</li>
+                    <li>Microsoft Word list and heading metadata</li>
+                  </ul>
+                </div>
+              </article>
+
+              <article class="about-card">
+                <header>
+                  <h2>Privacy</h2>
+                  <p>All processing occurs on the current device</p>
+                </header>
+
+                <div class="about-content">
+                  <p>
+                    Pasted and dropped content is processed entirely by
+                    JavaScript running in this browser. The application does not
+                    submit content to a server or third-party conversion
+                    service.
+                  </p>
+                  <p>
+                    Draft input, output, settings, and optional history are
+                    retained using browser localStorage.
+                  </p>
+                </div>
+              </article>
+
+              <article class="about-card">
+                <header>
+                  <h2>Keyboard shortcuts</h2>
+                  <p>Common actions available from the converter view</p>
+                </header>
+
+                <div class="about-content keyboard-list">
+                  <div class="keyboard-row">
+                    <span>Convert content</span>
+                    <kbd>Ctrl + Enter</kbd>
+                  </div>
+                  <div class="keyboard-row">
+                    <span>Copy MediaWiki output</span>
+                    <kbd>Ctrl + Shift + C</kbd>
+                  </div>
+                  <div class="keyboard-row">
+                    <span>Focus rich-text input</span>
+                    <kbd>Ctrl + Shift + V</kbd>
+                  </div>
+                </div>
+              </article>
+
+              <article class="about-card">
+                <header>
+                  <h2>Limitations</h2>
+                  <p>Content requiring manual review</p>
+                </header>
+
+                <div class="about-content">
+                  <ul>
+                    <li>
+                      Embedded images are represented by descriptive comments.
+                    </li>
+                    <li>
+                      Complex Word drawings and SmartArt cannot be
+                      reconstructed.
+                    </li>
+                    <li>
+                      Tracked changes and comments may be flattened by the
+                      browser.
+                    </li>
+                    <li>
+                      Highly customised table layouts may require manual
+                      adjustment.
+                    </li>
+                  </ul>
+                </div>
+              </article>
+            </div>
+          </section>
+        </main>
+
+        <footer class="app-footer">
+          <span>WikiConvert is open source under the MIT License.</span>
+          <a
+            href="https://github.com/andygock/wiki-convert"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            View on GitHub
+          </a>
+        </footer>
+      </div>
+    </div>
+
+    <div
+      class="toast-region"
+      id="toast-region"
+      aria-live="polite"
+      aria-atomic="false"
+    ></div>
+    <script src="./script.js"></script>
+  </body>
+</html>
