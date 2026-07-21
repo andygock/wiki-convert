@@ -12,11 +12,26 @@
     <link rel="icon" type="image/x-icon" href="./favicon.ico" sizes="64x64" />
     <link rel="icon" type="image/svg+xml" href="./icon.svg" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <script defer src="./script.js"></script>
+    <script defer src="./alpine-app.js"></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/alpinejs@3.15.12/dist/cdn.min.js"
+    ></script>
   </head>
 
-  <body>
+  <body
+    x-data="wikiConvert"
+    @keydown.window="handleKeyboardShortcut($event)"
+    @resize.window="closeMobileMenuOnDesktop()"
+  >
     <div class="app-shell">
-      <aside class="sidebar" id="sidebar" aria-label="Application navigation">
+      <aside
+        class="sidebar"
+        :class="{ open: mobileMenuOpen }"
+        id="sidebar"
+        aria-label="Application navigation"
+      >
         <div class="brand">
           <div class="brand-mark" aria-hidden="true">W</div>
           <div class="brand-text">
@@ -27,26 +42,45 @@
 
         <nav class="sidebar-nav" aria-label="Main navigation">
           <button
-            class="nav-button active"
+            class="nav-button"
+            :class="{ active: currentView === 'converter' }"
             type="button"
-            data-view="converter"
-            aria-current="page"
+            @click="switchView('converter')"
+            :aria-current="currentView === 'converter' ? 'page' : null"
           >
             <span class="nav-icon" aria-hidden="true">&gt;_</span>
             <span>Converter</span>
           </button>
 
-          <button class="nav-button" type="button" data-view="history">
+          <button
+            class="nav-button"
+            :class="{ active: currentView === 'history' }"
+            type="button"
+            @click="switchView('history')"
+            :aria-current="currentView === 'history' ? 'page' : null"
+          >
             <span class="nav-icon" aria-hidden="true">H</span>
             <span>History</span>
           </button>
 
-          <button class="nav-button" type="button" data-view="settings">
+          <button
+            class="nav-button"
+            :class="{ active: currentView === 'settings' }"
+            type="button"
+            @click="switchView('settings')"
+            :aria-current="currentView === 'settings' ? 'page' : null"
+          >
             <span class="nav-icon" aria-hidden="true">S</span>
             <span>Settings</span>
           </button>
 
-          <button class="nav-button" type="button" data-view="about">
+          <button
+            class="nav-button"
+            :class="{ active: currentView === 'about' }"
+            type="button"
+            @click="switchView('about')"
+            :aria-current="currentView === 'about' ? 'page' : null"
+          >
             <span class="nav-icon" aria-hidden="true">i</span>
             <span>About</span>
           </button>
@@ -54,11 +88,16 @@
 
         <footer class="sidebar-footer">
           <div>Local browser processing</div>
-          <div id="storage-status">State saved locally</div>
+          <div x-text="storageStatus">State saved locally</div>
         </footer>
       </aside>
 
-      <div class="sidebar-backdrop hidden" id="sidebar-backdrop"></div>
+      <div
+        class="sidebar-backdrop"
+        x-cloak
+        x-show="mobileMenuOpen"
+        @click="mobileMenuOpen = false"
+      ></div>
 
       <div class="main-column">
         <header class="topbar">
@@ -68,15 +107,16 @@
               id="mobile-menu-button"
               type="button"
               aria-label="Open navigation"
-              aria-expanded="false"
+              :aria-expanded="mobileMenuOpen"
               aria-controls="sidebar"
+              @click="mobileMenuOpen = !mobileMenuOpen"
             >
               ☰
             </button>
 
             <div class="page-heading">
-              <h1 id="page-title">MediaWiki Converter</h1>
-              <p id="page-subtitle">
+              <h1 id="page-title" x-text="pageTitle">MediaWiki Converter</h1>
+              <p x-text="pageSubtitle">
                 Paste or drop formatted content and convert it locally
               </p>
             </div>
@@ -92,7 +132,8 @@
           <section
             class="view"
             id="view-converter"
-            data-view-container="converter"
+            x-cloak
+            x-show="currentView === 'converter'"
             aria-labelledby="page-title"
           >
             <div class="converter-layout">
@@ -104,13 +145,14 @@
                   </div>
 
                   <div class="button-row">
-                    <button class="button" id="paste-button" type="button">
+                    <button class="button" type="button" @click="pasteFromClipboard()">
                       Paste
                     </button>
                     <button
                       class="button danger"
-                      id="clear-input-button"
                       type="button"
+                      :disabled="!inputText && !output"
+                      @click="clearInput()"
                     >
                       Clear
                     </button>
@@ -119,15 +161,22 @@
 
                 <div
                   class="drop-zone"
-                  id="drop-zone"
+                  :class="{ 'drag-active': dragActive }"
                   aria-label="Rich text drop area"
+                  @dragenter="handleDrag($event, true)"
+                  @dragover="handleDrag($event, true)"
+                  @dragleave="handleDrag($event, false)"
+                  @drop="handleDrop($event)"
                 >
                   <div
                     class="drop-instructions"
-                    id="drop-instructions"
+                    x-show="!inputVisible"
                     tabindex="0"
                     role="button"
                     aria-label="Click to enter rich text, or paste and drop content here"
+                    @click="showAndFocusInput()"
+                    @keydown.enter.prevent="showAndFocusInput()"
+                    @keydown.space.prevent="showAndFocusInput()"
                   >
                     <div class="drop-instructions-inner">
                       <div class="drop-symbol" aria-hidden="true">↓</div>
@@ -145,24 +194,32 @@
                   </div>
 
                   <div
-                    class="rich-input hidden"
-                    id="rich-input"
+                    class="rich-input"
+                    x-ref="richInput"
+                    x-show="inputVisible"
+                    x-cloak
                     contenteditable="true"
                     role="textbox"
                     aria-multiline="true"
                     spellcheck="true"
                     data-placeholder="Paste or type rich content here..."
+                    @input="handleRichInput()"
+                    @paste="handlePaste($event)"
                   ></div>
                 </div>
 
                 <footer class="panel-footer">
-                  <span class="status-message" id="input-status">
+                  <span
+                    class="status-message"
+                    :class="inputStatus.type"
+                    x-text="inputStatus.message"
+                  >
                     Waiting for input
                   </span>
 
                   <div class="stats" aria-label="Input statistics">
-                    <span id="input-words">0 words</span>
-                    <span id="input-chars">0 characters</span>
+                    <span x-text="plural(inputWords, 'word')">0 words</span>
+                    <span x-text="plural(inputText.length, 'character')">0 characters</span>
                   </div>
                 </footer>
               </section>
@@ -177,17 +234,17 @@
                   <div class="button-row">
                     <button
                       class="button"
-                      id="convert-button"
                       type="button"
-                      disabled
+                      :disabled="!inputText.trim() || isConverting"
+                      @click="convertContent()"
                     >
                       Convert
                     </button>
                     <button
                       class="button primary"
-                      id="copy-button"
                       type="button"
-                      disabled
+                      :disabled="!output || isConverting"
+                      @click="copyText(output)"
                     >
                       Copy
                     </button>
@@ -197,15 +254,18 @@
                 <div class="output-wrapper">
                   <textarea
                     class="output-textarea"
-                    id="output-textarea"
+                    x-ref="output"
+                    x-model="output"
+                    @input="handleOutputChange()"
                     aria-label="MediaWiki output"
                     placeholder="Converted MediaWiki markup will appear here..."
                     spellcheck="false"
                   ></textarea>
 
                   <div
-                    class="conversion-overlay hidden"
-                    id="conversion-overlay"
+                    class="conversion-overlay"
+                    x-cloak
+                    x-show="isConverting"
                   >
                     <div class="spinner-block" role="status" aria-live="polite">
                       <div class="spinner" aria-hidden="true"></div>
@@ -215,13 +275,17 @@
                 </div>
 
                 <footer class="panel-footer">
-                  <span class="status-message" id="output-status">
+                  <span
+                    class="status-message"
+                    :class="outputStatus.type"
+                    x-text="outputStatus.message"
+                  >
                     No conversion yet
                   </span>
 
                   <div class="stats" aria-label="Output statistics">
-                    <span id="output-lines">0 lines</span>
-                    <span id="output-chars">0 characters</span>
+                    <span x-text="plural(outputLines, 'line')">0 lines</span>
+                    <span x-text="plural(output.length, 'character')">0 characters</span>
                   </div>
                 </footer>
               </section>
@@ -229,9 +293,10 @@
           </section>
 
           <section
-            class="view hidden"
+            class="view"
             id="view-history"
-            data-view-container="history"
+            x-cloak
+            x-show="currentView === 'history'"
             aria-labelledby="page-title"
           >
             <div class="history-toolbar">
@@ -242,20 +307,60 @@
 
               <button
                 class="button danger"
-                id="clear-history-button"
                 type="button"
+                :disabled="history.length === 0"
+                @click="clearHistory()"
               >
                 Clear history
               </button>
             </div>
 
-            <div class="history-list" id="history-list"></div>
+            <div class="history-list">
+              <div class="history-empty" x-show="history.length === 0">
+                No conversion history has been saved.
+              </div>
+              <template x-for="entry in history" :key="entry.id">
+                <article class="history-item">
+                  <div class="history-item-header">
+                    <div class="history-meta">
+                      <h3 x-text="entry.title"></h3>
+                      <p x-text="formatDateTime(entry.createdAt)"></p>
+                    </div>
+                    <div class="history-actions">
+                      <button
+                        class="icon-button"
+                        type="button"
+                        aria-label="Restore"
+                        title="Restore"
+                        @click="restoreHistory(entry)"
+                      >R</button>
+                      <button
+                        class="icon-button"
+                        type="button"
+                        aria-label="Copy"
+                        title="Copy"
+                        @click="copyText(entry.output, true)"
+                      >C</button>
+                      <button
+                        class="icon-button danger"
+                        type="button"
+                        aria-label="Delete"
+                        title="Delete"
+                        @click="deleteHistory(entry.id)"
+                      >&times;</button>
+                    </div>
+                  </div>
+                  <pre class="history-preview" x-text="entry.output"></pre>
+                </article>
+              </template>
+            </div>
           </section>
 
           <section
-            class="view hidden"
+            class="view"
             id="view-settings"
-            data-view-container="settings"
+            x-cloak
+            x-show="currentView === 'settings'"
             aria-labelledby="page-title"
           >
             <div class="settings-grid">
@@ -277,7 +382,12 @@
                     </div>
 
                     <label class="toggle">
-                      <input id="setting-auto-convert" type="checkbox" />
+                      <input
+                        id="setting-auto-convert"
+                        type="checkbox"
+                        x-model="settings.autoConvert"
+                        @change="updateSettings()"
+                      />
                       <span class="toggle-track" aria-hidden="true"></span>
                     </label>
                   </div>
@@ -294,6 +404,8 @@
                       <input
                         id="setting-preserve-line-breaks"
                         type="checkbox"
+                        x-model="settings.preserveLineBreaks"
+                        @change="updateSettings()"
                       />
                       <span class="toggle-track" aria-hidden="true"></span>
                     </label>
@@ -310,7 +422,12 @@
                     </div>
 
                     <label class="toggle">
-                      <input id="setting-external-links" type="checkbox" />
+                      <input
+                        id="setting-external-links"
+                        type="checkbox"
+                        x-model="settings.externalLinks"
+                        @change="updateSettings()"
+                      />
                       <span class="toggle-track" aria-hidden="true"></span>
                     </label>
                   </div>
@@ -325,7 +442,12 @@
                       </p>
                     </div>
 
-                    <select class="select" id="setting-table-class">
+                    <select
+                      class="select"
+                      id="setting-table-class"
+                      x-model="settings.tableClass"
+                      @change="updateSettings()"
+                    >
                       <option value="wikitable">wikitable</option>
                       <option value="wikitable sortable">
                         wikitable sortable
@@ -352,7 +474,12 @@
                     </div>
 
                     <label class="toggle">
-                      <input id="setting-save-history" type="checkbox" />
+                      <input
+                        id="setting-save-history"
+                        type="checkbox"
+                        x-model="settings.saveHistory"
+                        @change="updateSettings()"
+                      />
                       <span class="toggle-track" aria-hidden="true"></span>
                     </label>
                   </div>
@@ -363,7 +490,12 @@
                       <p>Maximum number of recent conversions to retain.</p>
                     </div>
 
-                    <select class="select" id="setting-history-limit">
+                    <select
+                      class="select"
+                      id="setting-history-limit"
+                      x-model="settings.historyLimit"
+                      @change="updateSettings()"
+                    >
                       <option value="5">5 conversions</option>
                       <option value="10">10 conversions</option>
                       <option value="20">20 conversions</option>
@@ -379,8 +511,8 @@
 
                     <button
                       class="button danger"
-                      id="reset-application-button"
                       type="button"
+                      @click="resetApplication()"
                     >
                       Reset
                     </button>
@@ -391,9 +523,10 @@
           </section>
 
           <section
-            class="view hidden"
+            class="view"
             id="view-about"
-            data-view-container="about"
+            x-cloak
+            x-show="currentView === 'about'"
             aria-labelledby="page-title"
           >
             <div class="about-grid">
@@ -505,10 +638,18 @@
 
     <div
       class="toast-region"
-      id="toast-region"
       aria-live="polite"
       aria-atomic="false"
-    ></div>
-    <script src="./script.js"></script>
+    >
+      <template x-for="toast in toasts" :key="toast.id">
+        <div
+          class="toast"
+          :class="toast.type"
+          :role="toast.type === 'error' ? 'alert' : 'status'"
+          x-text="toast.message"
+          x-transition.opacity
+        ></div>
+      </template>
+    </div>
   </body>
 </html>

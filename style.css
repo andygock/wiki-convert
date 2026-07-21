@@ -1065,3 +1065,6 @@ main {
     transition-duration: 0.01ms !important;
   }
 }
+[x-cloak] {
+  display: none !important;
+}

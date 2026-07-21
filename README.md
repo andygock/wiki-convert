@@ -14,7 +14,7 @@ WikiConvert turns rich text copied from Microsoft Word, LibreOffice, websites, e
 - Provides optional automatic conversion and configurable table markup
 - Saves drafts, settings, and optional conversion history in browser `localStorage`
 - Includes copy-to-clipboard support and keyboard shortcuts
-- Requires no build tools, package manager, backend, or external dependencies
+- Uses Alpine.js for reactive UI state without build tools, a package manager, or a backend
 
 ## Getting started
 
@@ -54,7 +54,8 @@ Draft input, output, settings, and optional history are stored in the browser's 
 ```text
 index.html  Application structure and interface
 style.css   Layout, theme, and responsive styles
-script.js   Conversion logic, state, history, and interactions
+script.js   Framework-independent rich-text conversion engine
+alpine-app.js  Alpine.js state, persistence, history, and interactions
 ```
 
 ## License
