@@ -2,6 +2,8 @@
 
 Vibe coded with GPT 5.6 Sol.
 
+Live demo: <https://andygock.github.io/wiki-convert/>
+
 WikiConvert turns rich text copied from Microsoft Word, LibreOffice, websites, email clients, and other applications into clean MediaWiki markup. Conversion happens entirely in the browser, so pasted content is never sent to a server.
 
 ## Features
