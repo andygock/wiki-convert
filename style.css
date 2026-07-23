@@ -388,8 +388,50 @@ main {
 .button-row {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.heading-level-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  margin-right: 2px;
+}
+
+.heading-level-button {
+  min-width: 30px;
+  height: 28px;
+  padding: 3px 7px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 11px;
+  line-height: 1;
+  transition:
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+.heading-level-button.reset {
+  min-width: auto;
+  font-family: inherit;
+  font-size: 10px;
+}
+
+.heading-level-button:hover:not(:disabled),
+.heading-level-button:focus-visible {
+  border-color: var(--primary);
+  background: rgb(97 175 239 / 7%);
+  color: var(--primary);
+}
+
+.heading-level-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.32;
 }
 
 .button {

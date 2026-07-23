@@ -14,6 +14,8 @@
     inputHtml: "",
     inputText: "",
     output: "",
+    outputHeadingBase: "",
+    headingLevelOffset: 0,
     history: [],
     settings: {
       autoConvert: true,
@@ -62,6 +64,15 @@
     richInput: document.querySelector("#rich-input"),
     pasteButton: document.querySelector("#paste-button"),
     clearInputButton: document.querySelector("#clear-input-button"),
+    increaseHeadingLevelButton: document.querySelector(
+      "#increase-heading-level-button",
+    ),
+    resetHeadingLevelButton: document.querySelector(
+      "#reset-heading-level-button",
+    ),
+    decreaseHeadingLevelButton: document.querySelector(
+      "#decrease-heading-level-button",
+    ),
     convertButton: document.querySelector("#convert-button"),
     copyButton: document.querySelector("#copy-button"),
     outputTextarea: document.querySelector("#output-textarea"),
@@ -239,6 +250,15 @@
 
     elements.pasteButton.addEventListener("click", pasteFromClipboard);
     elements.clearInputButton.addEventListener("click", clearInput);
+    elements.increaseHeadingLevelButton.addEventListener("click", () => {
+      adjustHeadingLevels(1);
+    });
+    elements.resetHeadingLevelButton.addEventListener("click", () => {
+      resetHeadingLevels();
+    });
+    elements.decreaseHeadingLevelButton.addEventListener("click", () => {
+      adjustHeadingLevels(-1);
+    });
     elements.convertButton.addEventListener("click", convertContent);
     elements.copyButton.addEventListener("click", copyOutput);
     elements.outputTextarea.addEventListener("input", handleOutputChange);
@@ -572,6 +592,8 @@
       inputHtml: "",
       inputText: "",
       output: "",
+      outputHeadingBase: "",
+      headingLevelOffset: 0,
     });
 
     setStatus(elements.inputStatus, "Waiting for input");
@@ -618,6 +640,8 @@
 
       setState({
         output,
+        outputHeadingBase: output,
+        headingLevelOffset: 0,
       });
 
       updateOutputStats();
@@ -1317,13 +1341,90 @@
 
   // Treat manual output edits as the current saved draft rather than overwriting them.
   function handleOutputChange() {
+    const output = elements.outputTextarea.value;
+
     setState({
-      output: elements.outputTextarea.value,
+      output,
+      outputHeadingBase: output,
+      headingLevelOffset: 0,
     });
 
     setStatus(elements.outputStatus, "Output edited", "success");
     updateOutputStats();
     updateButtons();
+  }
+
+  // Shift every MediaWiki heading from the original output, preserving Reset.
+  function adjustHeadingLevels(change) {
+    const baseOutput = state.outputHeadingBase || elements.outputTextarea.value;
+    const levels = getHeadingLevels(baseOutput);
+
+    if (!levels.length) {
+      return;
+    }
+
+    const minimumOffset = 1 - Math.max(...levels);
+    const maximumOffset = 6 - Math.min(...levels);
+    const headingLevelOffset = Math.min(
+      maximumOffset,
+      Math.max(minimumOffset, state.headingLevelOffset + change),
+    );
+    const output = transposeHeadingLevels(baseOutput, headingLevelOffset);
+
+    elements.outputTextarea.value = output;
+    setState({
+      output,
+      outputHeadingBase: baseOutput,
+      headingLevelOffset,
+    });
+
+    setStatus(
+      elements.outputStatus,
+      headingLevelOffset
+        ? `Heading levels shifted ${headingLevelOffset > 0 ? "+" : ""}${headingLevelOffset}`
+        : "Heading levels reset",
+      "success",
+    );
+    updateOutputStats();
+    updateButtons();
+  }
+
+  // Restore heading markers to the last conversion or manual output edit.
+  function resetHeadingLevels() {
+    if (!state.headingLevelOffset) {
+      return;
+    }
+
+    const output = state.outputHeadingBase || elements.outputTextarea.value;
+    elements.outputTextarea.value = output;
+
+    setState({
+      output,
+      headingLevelOffset: 0,
+    });
+
+    setStatus(elements.outputStatus, "Heading levels reset", "success");
+    updateOutputStats();
+    updateButtons();
+  }
+
+  // Return the numeric levels of all valid MediaWiki heading lines.
+  function getHeadingLevels(output) {
+    return [...String(output).matchAll(/^(={1,6})(.+?)\1[ \t]*$/gm)].map(
+      (match) => match[1].length,
+    );
+  }
+
+  // Rebuild heading markers at an offset while clamping levels from 1 through 6.
+  function transposeHeadingLevels(output, offset) {
+    return String(output).replace(
+      /^(={1,6})(.+?)\1([ \t]*)$/gm,
+      (_, markers, content, trailingWhitespace) => {
+        const level = Math.min(6, Math.max(1, markers.length + offset));
+        const shiftedMarkers = "=".repeat(level);
+        return `${shiftedMarkers}${content}${shiftedMarkers}${trailingWhitespace}`;
+      },
+    );
   }
 
   // Copy output using the modern Clipboard API, with selection-based legacy fallback.
@@ -1501,6 +1602,8 @@
         inputHtml: entry.inputHtml || "",
         inputText: entry.inputText || "",
         output: entry.output,
+        outputHeadingBase: entry.output,
+        headingLevelOffset: 0,
       });
 
       restoreDraft();
@@ -1634,9 +1737,27 @@
   function updateButtons() {
     const hasInput = Boolean(state.inputText.trim());
     const hasOutput = Boolean(elements.outputTextarea.value);
+    const headingBase = state.outputHeadingBase || elements.outputTextarea.value;
+    const headingLevels = getHeadingLevels(headingBase);
+    const minimumHeadingOffset = headingLevels.length
+      ? 1 - Math.max(...headingLevels)
+      : 0;
+    const maximumHeadingOffset = headingLevels.length
+      ? 6 - Math.min(...headingLevels)
+      : 0;
 
     elements.convertButton.disabled = !hasInput || isConverting;
     elements.copyButton.disabled = !hasOutput || isConverting;
+    elements.increaseHeadingLevelButton.disabled =
+      isConverting ||
+      !headingLevels.length ||
+      state.headingLevelOffset >= maximumHeadingOffset;
+    elements.decreaseHeadingLevelButton.disabled =
+      isConverting ||
+      !headingLevels.length ||
+      state.headingLevelOffset <= minimumHeadingOffset;
+    elements.resetHeadingLevelButton.disabled =
+      isConverting || !headingLevels.length || state.headingLevelOffset === 0;
     elements.clearInputButton.disabled =
       !hasInput && !elements.outputTextarea.value;
   }
