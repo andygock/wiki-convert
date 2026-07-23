@@ -236,7 +236,9 @@
     });
 
     quill.on("text-change", handleRichInputChange);
-    quill.root.addEventListener("paste", handleRichInputPaste);
+    quill.root.addEventListener("paste", handleRichInputPaste, {
+      capture: true,
+    });
 
     ["dragenter", "dragover"].forEach((eventName) => {
       elements.dropZone.addEventListener(eventName, handleDragEnter);
@@ -400,6 +402,7 @@
     }
 
     event.preventDefault();
+    event.stopImmediatePropagation();
 
     const cleaned = sanitiseInputHtml(html);
     insertHtmlAtSelection(cleaned || escapeHtml(text));
