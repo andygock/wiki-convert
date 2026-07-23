@@ -58,6 +58,7 @@
 
     dropZone: document.querySelector("#drop-zone"),
     dropInstructions: document.querySelector("#drop-instructions"),
+    editorContainer: document.querySelector("#editor-container"),
     richInput: document.querySelector("#rich-input"),
     pasteButton: document.querySelector("#paste-button"),
     clearInputButton: document.querySelector("#clear-input-button"),
@@ -95,6 +96,7 @@
   let state = loadState();
   let autoConvertTimer = null;
   let isConverting = false;
+  let quill = null;
 
   // Read and validate the local draft, merging it onto the current defaults.
   function loadState() {
@@ -145,6 +147,7 @@
 
   // Restore UI from state, calculate derived UI, then attach event handlers.
   function initialise() {
+    initialiseQuill();
     hydrateSettings();
     restoreDraft();
     renderHistory();
@@ -153,6 +156,28 @@
     updateOutputStats();
     updateButtons();
     bindEvents();
+  }
+
+  // Build the Quill editor with the formats supported by the converter.
+  function initialiseQuill() {
+    quill = new Quill(elements.richInput, {
+      theme: "snow",
+      placeholder: "Paste or type rich content here...",
+      modules: {
+        toolbar: [
+          [{ header: [1, 2, 3, 4, 5, 6, false] }],
+          ["bold", "italic", "underline", "strike"],
+          ["blockquote", "code-block"],
+          [{ list: "ordered" }, { list: "bullet" }],
+          ["link", "clean"],
+        ],
+      },
+    });
+
+    quill.root.setAttribute("aria-label", "Rich text input");
+    quill.root.setAttribute("role", "textbox");
+    quill.root.setAttribute("aria-multiline", "true");
+    quill.root.setAttribute("spellcheck", "true");
   }
 
   // Copy persisted settings into the settings form controls.
@@ -172,9 +197,9 @@
       showRichInput();
 
       if (state.inputHtml) {
-        elements.richInput.innerHTML = sanitiseInputHtml(state.inputHtml);
+        setEditorHtml(state.inputHtml);
       } else {
-        elements.richInput.textContent = state.inputText;
+        quill.setText(state.inputText, "silent");
       }
     }
 
@@ -199,8 +224,8 @@
       }
     });
 
-    elements.richInput.addEventListener("input", handleRichInputChange);
-    elements.richInput.addEventListener("paste", handleRichInputPaste);
+    quill.on("text-change", handleRichInputChange);
+    quill.root.addEventListener("paste", handleRichInputPaste);
 
     ["dragenter", "dragover"].forEach((eventName) => {
       elements.dropZone.addEventListener(eventName, handleDragEnter);
@@ -309,19 +334,19 @@
   // Replace the empty-state instructions with the contenteditable input.
   function showRichInput() {
     elements.dropInstructions.classList.add("hidden");
-    elements.richInput.classList.remove("hidden");
+    elements.editorContainer.classList.remove("hidden");
   }
 
   // Reveal the editor and place the typing caret in it.
   function showAndFocusInput() {
     showRichInput();
-    elements.richInput.focus();
+    quill.focus();
   }
 
   // Save both rich and plain representations, then refresh all input-derived UI.
   function handleRichInputChange() {
-    const inputHtml = elements.richInput.innerHTML;
-    const inputText = normalisePlainText(elements.richInput.innerText);
+    const inputText = normalisePlainText(quill.getText());
+    const inputHtml = inputText ? quill.root.innerHTML : "";
 
     setState({
       inputHtml,
@@ -358,7 +383,6 @@
 
     const cleaned = sanitiseInputHtml(html);
     insertHtmlAtSelection(cleaned || escapeHtml(text));
-    handleRichInputChange();
   }
 
   // Allow a drop and give users visual feedback while data is over the target.
@@ -527,20 +551,20 @@
     showRichInput();
 
     if (html) {
-      elements.richInput.innerHTML = sanitiseInputHtml(html);
+      setEditorHtml(html);
     } else {
-      elements.richInput.textContent = text;
+      quill.setText(text, "silent");
     }
 
     handleRichInputChange();
-    elements.richInput.focus();
+    quill.focus();
   }
 
   // Clear both editor/output and cancel pending automatic work.
   function clearInput() {
     clearTimeout(autoConvertTimer);
-    elements.richInput.innerHTML = "";
-    elements.richInput.classList.add("hidden");
+    quill.setText("", "silent");
+    elements.editorContainer.classList.add("hidden");
     elements.dropInstructions.classList.remove("hidden");
     elements.outputTextarea.value = "";
 
@@ -1272,34 +1296,23 @@
       .trim();
   }
 
-  // Insert cleaned paste HTML at the editor caret and restore the caret after it.
+  // Insert cleaned paste HTML through Quill so its document model stays in sync.
   function insertHtmlAtSelection(html) {
-    const selection = window.getSelection();
+    const range = quill.getSelection(true) ?? {
+      index: Math.max(0, quill.getLength() - 1),
+      length: 0,
+    };
 
-    if (!selection || !selection.rangeCount) {
-      elements.richInput.insertAdjacentHTML("beforeend", html);
-      return;
+    if (range.length) {
+      quill.deleteText(range.index, range.length, "user");
     }
 
-    const range = selection.getRangeAt(0);
+    quill.clipboard.dangerouslyPasteHTML(range.index, html, "user");
+  }
 
-    if (!elements.richInput.contains(range.commonAncestorContainer)) {
-      elements.richInput.insertAdjacentHTML("beforeend", html);
-      return;
-    }
-
-    range.deleteContents();
-
-    const fragment = range.createContextualFragment(html);
-    const lastNode = fragment.lastChild;
-    range.insertNode(fragment);
-
-    if (lastNode) {
-      range.setStartAfter(lastNode);
-      range.collapse(true);
-      selection.removeAllRanges();
-      selection.addRange(range);
-    }
+  // Replace the complete Quill document with sanitised HTML without firing edits.
+  function setEditorHtml(html) {
+    quill.clipboard.dangerouslyPasteHTML(sanitiseInputHtml(html), "silent");
   }
 
   // Treat manual output edits as the current saved draft rather than overwriting them.
@@ -1571,8 +1584,8 @@
 
     clearTimeout(autoConvertTimer);
 
-    elements.richInput.innerHTML = "";
-    elements.richInput.classList.add("hidden");
+    quill.setText("", "silent");
+    elements.editorContainer.classList.add("hidden");
     elements.dropInstructions.classList.remove("hidden");
     elements.outputTextarea.value = "";
 
@@ -1592,7 +1605,7 @@
   // Calculate current input word/character totals from the editor's visible text.
   function updateInputStats() {
     const text = normalisePlainText(
-      elements.richInput.innerText || state.inputText || "",
+      quill?.getText() || state.inputText || "",
     );
     const words = countWords(text);
 

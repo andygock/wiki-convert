@@ -12,6 +12,10 @@
     <link rel="icon" type="image/x-icon" href="./favicon.ico" sizes="64x64" />
     <link rel="icon" type="image/svg+xml" href="./icon.svg" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css"
+      rel="stylesheet"
+    />
   </head>
 
   <body>
@@ -144,15 +148,9 @@
                     </div>
                   </div>
 
-                  <div
-                    class="rich-input hidden"
-                    id="rich-input"
-                    contenteditable="true"
-                    role="textbox"
-                    aria-multiline="true"
-                    spellcheck="true"
-                    data-placeholder="Paste or type rich content here..."
-                  ></div>
+                  <div class="editor-container hidden" id="editor-container">
+                    <div id="rich-input"></div>
+                  </div>
                 </div>
 
                 <footer class="panel-footer">
@@ -509,6 +507,7 @@
       aria-live="polite"
       aria-atomic="false"
     ></div>
+    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
     <script src="./script.js"></script>
   </body>
 </html>

@@ -495,38 +495,113 @@ main {
   font-size: 11px;
 }
 
-.rich-input {
+.editor-container {
   width: 100%;
   min-height: 480px;
-  padding: 18px;
-  overflow: auto;
+  background: var(--background-deep);
+}
+
+.editor-container .ql-toolbar.ql-snow {
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.editor-container .ql-container.ql-snow {
+  min-height: 435px;
   border: 0;
   background: var(--background-deep);
   color: var(--text-strong);
+  font-family: inherit;
+  font-size: 15px;
+}
+
+.editor-container .ql-editor {
+  min-height: 435px;
+  padding: 18px;
   line-height: 1.65;
-  outline: 0;
 }
 
-.rich-input:empty::before {
-  content: attr(data-placeholder);
+.editor-container .ql-editor.ql-blank::before {
+  left: 18px;
+  right: 18px;
   color: var(--text-muted);
-  pointer-events: none;
+  font-style: normal;
 }
 
-.rich-input img {
+.editor-container .ql-editor img {
   max-width: 100%;
   height: auto;
 }
 
-.rich-input table {
+.editor-container .ql-editor table {
   max-width: 100%;
   border-collapse: collapse;
 }
 
-.rich-input td,
-.rich-input th {
+.editor-container .ql-editor td,
+.editor-container .ql-editor th {
   padding: 5px;
   border: 1px solid var(--border);
+}
+
+.editor-container .ql-snow .ql-stroke {
+  stroke: var(--text);
+}
+
+.editor-container .ql-snow .ql-fill,
+.editor-container .ql-snow .ql-stroke.ql-fill {
+  fill: var(--text);
+}
+
+.editor-container .ql-snow .ql-picker {
+  color: var(--text);
+}
+
+.editor-container .ql-snow button:hover .ql-stroke,
+.editor-container .ql-snow button:focus .ql-stroke,
+.editor-container .ql-snow button.ql-active .ql-stroke,
+.editor-container .ql-snow .ql-picker-label:hover .ql-stroke,
+.editor-container .ql-snow .ql-picker-label.ql-active .ql-stroke,
+.editor-container .ql-snow .ql-picker-item:hover .ql-stroke,
+.editor-container .ql-snow .ql-picker-item.ql-selected .ql-stroke {
+  stroke: var(--primary);
+}
+
+.editor-container .ql-snow button:hover .ql-fill,
+.editor-container .ql-snow button:focus .ql-fill,
+.editor-container .ql-snow button.ql-active .ql-fill {
+  fill: var(--primary);
+}
+
+.editor-container .ql-snow .ql-picker-label:hover,
+.editor-container .ql-snow .ql-picker-label.ql-active,
+.editor-container .ql-snow .ql-picker-item:hover,
+.editor-container .ql-snow .ql-picker-item.ql-selected {
+  color: var(--primary);
+}
+
+.editor-container .ql-snow .ql-picker-options {
+  border-color: var(--border-strong);
+  background: var(--surface-raised);
+  box-shadow: 0 8px 20px rgb(0 0 0 / 28%);
+}
+
+.editor-container .ql-snow a {
+  color: var(--primary);
+}
+
+.editor-container .ql-snow .ql-tooltip {
+  border-color: var(--border-strong);
+  background: var(--surface-raised);
+  box-shadow: 0 8px 20px rgb(0 0 0 / 28%);
+  color: var(--text);
+}
+
+.editor-container .ql-snow .ql-tooltip input[type="text"] {
+  border-color: var(--border-strong);
+  background: var(--background-deep);
+  color: var(--text-strong);
 }
 
 .output-wrapper {
@@ -969,10 +1044,15 @@ main {
   }
 
   .drop-zone,
-  .rich-input,
+  .editor-container,
   .output-wrapper,
   .output-textarea {
     min-height: 380px;
+  }
+
+  .editor-container .ql-container.ql-snow,
+  .editor-container .ql-editor {
+    min-height: 335px;
   }
 }
 
@@ -1043,10 +1123,15 @@ main {
   }
 
   .drop-zone,
-  .rich-input,
+  .editor-container,
   .output-wrapper,
   .output-textarea {
     min-height: 330px;
+  }
+
+  .editor-container .ql-container.ql-snow,
+  .editor-container .ql-editor {
+    min-height: 285px;
   }
 
   .app-footer {
