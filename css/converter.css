@@ -1,0 +1,392 @@
+.converter-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+.panel {
+  min-width: 0;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.panel-header {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-raised);
+}
+
+.panel-title {
+  min-width: 0;
+}
+
+.panel-title h2 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.panel-title p {
+  margin: 2px 0 0;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.heading-level-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  margin-right: 2px;
+}
+
+.heading-level-button {
+  min-width: 30px;
+  height: 28px;
+  padding: 3px 7px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 11px;
+  line-height: 1;
+  transition:
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+.heading-level-button.reset {
+  min-width: auto;
+  font-family: inherit;
+  font-size: 10px;
+}
+
+.heading-level-button:hover:not(:disabled),
+.heading-level-button:focus-visible {
+  border-color: var(--primary);
+  background: rgb(97 175 239 / 7%);
+  color: var(--primary);
+}
+
+.heading-level-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.32;
+}
+
+.button {
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 550;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.button:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+
+.button.primary {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #181a1f;
+}
+
+.button.primary:hover:not(:disabled) {
+  border-color: var(--primary-hover);
+  background: var(--primary-hover);
+  color: #181a1f;
+}
+
+.button.danger:hover:not(:disabled) {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.drop-zone {
+  position: relative;
+  display: flex;
+  min-height: 480px;
+  flex-direction: column;
+  background: var(--background-deep);
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.drop-zone.drag-active {
+  background: #202731;
+  box-shadow: inset 0 0 0 2px var(--primary);
+}
+
+.drop-instructions {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  padding: 28px;
+  text-align: center;
+  cursor: text;
+}
+
+.drop-instructions-inner {
+  max-width: 360px;
+}
+
+.drop-symbol {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  place-items: center;
+  border: 1px solid var(--border-strong);
+  color: var(--primary);
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 24px;
+}
+
+.drop-instructions h3 {
+  margin-bottom: 8px;
+  font-size: 17px;
+}
+
+.drop-instructions p {
+  margin-bottom: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.drop-instructions kbd {
+  padding: 2px 5px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-strong);
+  font-family: inherit;
+  font-size: 11px;
+}
+
+.editor-container {
+  width: 100%;
+  min-height: 480px;
+  background: var(--background-deep);
+}
+
+.editor-container .ql-toolbar.ql-snow {
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.editor-container .ql-container.ql-snow {
+  min-height: 435px;
+  border: 0;
+  background: var(--background-deep);
+  color: var(--text-strong);
+  font-family: inherit;
+  font-size: 15px;
+}
+
+.editor-container .ql-editor {
+  min-height: 435px;
+  padding: 18px;
+  line-height: 1.65;
+}
+
+.editor-container .ql-editor.ql-blank::before {
+  left: 18px;
+  right: 18px;
+  color: var(--text-muted);
+  font-style: normal;
+}
+
+.editor-container .ql-editor img {
+  max-width: 100%;
+  height: auto;
+}
+
+.editor-container .ql-editor table {
+  max-width: 100%;
+  border-collapse: collapse;
+}
+
+.editor-container .ql-editor td,
+.editor-container .ql-editor th {
+  padding: 5px;
+  border: 1px solid var(--border);
+}
+
+.editor-container .ql-snow .ql-stroke {
+  stroke: var(--text);
+}
+
+.editor-container .ql-snow .ql-fill,
+.editor-container .ql-snow .ql-stroke.ql-fill {
+  fill: var(--text);
+}
+
+.editor-container .ql-snow .ql-picker {
+  color: var(--text);
+}
+
+.editor-container .ql-snow button:hover .ql-stroke,
+.editor-container .ql-snow button:focus .ql-stroke,
+.editor-container .ql-snow button.ql-active .ql-stroke,
+.editor-container .ql-snow .ql-picker-label:hover .ql-stroke,
+.editor-container .ql-snow .ql-picker-label.ql-active .ql-stroke,
+.editor-container .ql-snow .ql-picker-item:hover .ql-stroke,
+.editor-container .ql-snow .ql-picker-item.ql-selected .ql-stroke {
+  stroke: var(--primary);
+}
+
+.editor-container .ql-snow button:hover .ql-fill,
+.editor-container .ql-snow button:focus .ql-fill,
+.editor-container .ql-snow button.ql-active .ql-fill {
+  fill: var(--primary);
+}
+
+.editor-container .ql-snow .ql-picker-label:hover,
+.editor-container .ql-snow .ql-picker-label.ql-active,
+.editor-container .ql-snow .ql-picker-item:hover,
+.editor-container .ql-snow .ql-picker-item.ql-selected {
+  color: var(--primary);
+}
+
+.editor-container .ql-snow .ql-picker-options {
+  border-color: var(--border-strong);
+  background: var(--surface-raised);
+  box-shadow: 0 8px 20px rgb(0 0 0 / 28%);
+}
+
+.editor-container .ql-snow a {
+  color: var(--primary);
+}
+
+.editor-container .ql-snow .ql-tooltip {
+  border-color: var(--border-strong);
+  background: var(--surface-raised);
+  box-shadow: 0 8px 20px rgb(0 0 0 / 28%);
+  color: var(--text);
+}
+
+.editor-container .ql-snow .ql-tooltip input[type="text"] {
+  border-color: var(--border-strong);
+  background: var(--background-deep);
+  color: var(--text-strong);
+}
+
+.output-wrapper {
+  position: relative;
+  min-height: 480px;
+  background: var(--background-deep);
+}
+
+.output-textarea {
+  display: block;
+  width: 100%;
+  min-height: 480px;
+  resize: vertical;
+  padding: 18px;
+  border: 0;
+  background: var(--background-deep);
+  color: var(--text-strong);
+  font-size: 13px;
+  line-height: 1.55;
+  outline: 0;
+  tab-size: 4;
+}
+
+.output-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.conversion-overlay {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgb(24 26 31 / 82%);
+}
+
+.spinner-block {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  color: var(--text-strong);
+  font-size: 13px;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border-strong);
+  border-top-color: var(--primary);
+  animation: spin 700ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.panel-footer {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 16px;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.status-message {
+  color: var(--text-muted);
+}
+
+.status-message.success {
+  color: var(--success);
+}
+
+.status-message.error {
+  color: var(--danger);
+}
+
+.status-message.warning {
+  color: var(--warning);
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.settings-grid,

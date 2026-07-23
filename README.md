@@ -52,9 +52,16 @@ Draft input, output, settings, and optional history are stored in the browser's 
 ## Project structure
 
 ```text
-index.html  Application structure and interface
-style.css   Layout, theme, and responsive styles
-script.js   Conversion logic, state, history, and interactions
+index.html               Application structure and interface
+css/
+  main.css               Stylesheet entry point
+  base.css               Theme, shell, navigation, and modal styles
+  converter.css          Converter panels, editor, and output styles
+  components.css         Settings, notifications, and shared components
+  responsive.css         Responsive and reduced-motion rules
+js/
+  app.js                 Application state and browser interactions
+  converter.js           HTML sanitisation and MediaWiki conversion
 ```
 
 ## License
