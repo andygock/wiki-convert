@@ -10,8 +10,12 @@
     min-height: 380px;
   }
 
-  .editor-container .ql-container.ql-snow,
-  .editor-container .ql-editor {
+  .editor-container {
+    height: 380px;
+  }
+
+  .editor-container .jodit-workplace,
+  .editor-container .jodit-wysiwyg {
     min-height: 335px;
   }
 }
@@ -89,8 +93,12 @@
     min-height: 330px;
   }
 
-  .editor-container .ql-container.ql-snow,
-  .editor-container .ql-editor {
+  .editor-container {
+    height: 330px;
+  }
+
+  .editor-container .jodit-workplace,
+  .editor-container .jodit-wysiwyg {
     min-height: 285px;
   }
 

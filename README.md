@@ -14,8 +14,8 @@ WikiConvert turns rich text copied from Microsoft Word, LibreOffice, websites, e
 - Provides optional automatic conversion and configurable table markup
 - Saves drafts, settings, and optional conversion history in browser `localStorage`
 - Includes copy-to-clipboard support and keyboard shortcuts
-- Uses Quill and Turndown from pinned CDN releases; requires no build tools,
-  package manager, backend, or conversion service
+- Uses Jodit, Word Cleaner, and Turndown from pinned CDN releases; requires no
+  build tools, package manager, backend, or conversion service
 
 ## Getting started
 

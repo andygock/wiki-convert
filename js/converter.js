@@ -186,10 +186,16 @@ function mediaWikiPlugin(settings) {
       replacement(content, node) {
         const marker = node.nodeName === "TH" ? "!" : "|";
         const attributes = tableCellAttributes(node);
-        const value = content
-          .replace(/\n{2,}/g, "<br />")
-          .replace(/\n/g, settings.preserveLineBreaks ? "<br />" : " ")
+        const trimmedContent = content.trim();
+        const isPlaceholderOnly = !trimmedContent
+          .replace(/<br\s*\/?>/gi, "")
           .trim();
+        const value = isPlaceholderOnly
+          ? ""
+          : trimmedContent
+              .replace(/\n{2,}/g, "<br />")
+              .replace(/\n/g, settings.preserveLineBreaks ? "<br />" : " ")
+              .trim();
         return `${marker} ${attributes ? `${attributes} | ` : ""}${value}\n`;
       },
     });
@@ -246,7 +252,7 @@ function cleanMediaWikiOutput(value) {
 }
 
 // Sanitisation is separate from conversion. It prevents active pasted markup
-// from reaching Quill; no network or server is involved.
+// from reaching the editor; no network or server is involved.
 function sanitiseInputHtml(html) {
   if (!html) return "";
 
@@ -258,6 +264,12 @@ function sanitiseInputHtml(html) {
     .forEach((node) => node.remove());
 
   documentNode.querySelectorAll("*").forEach((element) => {
+    if (element.tagName === "IMG") {
+      // Images are not converted, so prevent pasted remote URLs from loading.
+      element.removeAttribute("src");
+      element.removeAttribute("srcset");
+    }
+
     [...element.attributes].forEach((attribute) => {
       const name = attribute.name.toLowerCase();
       const value = attribute.value.trim();

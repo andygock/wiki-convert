@@ -77,7 +77,7 @@ import {
   let state = structuredClone(defaultState);
   let autoConvertTimer = null;
   let isConverting = false;
-  let quill = null;
+  let editor = null;
 
   // Apply an in-memory state update. Nothing is persisted between page loads.
   function setState(updates) {
@@ -89,7 +89,7 @@ import {
 
   // Restore UI from state, calculate derived UI, then attach event handlers.
   function initialise() {
-    initialiseQuill();
+    initialiseEditor();
     hydrateSettings();
     updateInputStats();
     updateOutputStats();
@@ -97,26 +97,49 @@ import {
     bindEvents();
   }
 
-  // Build the Quill editor with the formats supported by the converter.
-  function initialiseQuill() {
-    quill = new Quill(elements.richInput, {
-      theme: "snow",
+  // Build Jodit with local Word-paste cleanup and no upload/cloud integrations.
+  function initialiseEditor() {
+    editor = Jodit.make(elements.richInput, {
+      theme: "dark",
       placeholder: "Paste or type rich content here...",
-      modules: {
-        toolbar: [
-          [{ header: [1, 2, 3, 4, 5, 6, false] }],
-          ["bold", "italic", "underline", "strike"],
-          ["blockquote", "code-block"],
-          [{ list: "ordered" }, { list: "bullet" }],
-          ["link", "clean"],
-        ],
+      height: 435,
+      minHeight: 285,
+      toolbarAdaptive: false,
+      disablePlugins: ["source"],
+      beautifyHTML: false,
+      sourceEditor: "area",
+      beautifyHTMLCDNUrlsJS: [],
+      sourceEditorCDNUrlsJS: [],
+      buttons: [
+        "paragraph",
+        "bold",
+        "italic",
+        "underline",
+        "strikethrough",
+        "ul",
+        "ol",
+        "outdent",
+        "indent",
+        "blockquote",
+        "link",
+        "table",
+        "hr",
+        "eraser",
+        "undo",
+        "redo",
+      ],
+      askBeforePasteFromWord: false,
+      defaultActionOnPasteFromWord: "insert_clear_html",
+      processPasteFromWord: false,
+      uploader: {
+        insertImageAsBase64URI: false,
       },
     });
 
-    quill.root.setAttribute("aria-label", "Rich text input");
-    quill.root.setAttribute("role", "textbox");
-    quill.root.setAttribute("aria-multiline", "true");
-    quill.root.setAttribute("spellcheck", "true");
+    editor.editor.setAttribute("aria-label", "Rich text input");
+    editor.editor.setAttribute("role", "textbox");
+    editor.editor.setAttribute("aria-multiline", "true");
+    editor.editor.setAttribute("spellcheck", "true");
   }
 
   // Copy session settings into the settings form controls.
@@ -136,7 +159,7 @@ import {
       if (state.inputHtml) {
         setEditorHtml(state.inputHtml);
       } else {
-        quill.setText(state.inputText, "silent");
+        editor.value = escapeHtml(state.inputText);
       }
     }
 
@@ -174,8 +197,8 @@ import {
       }
     });
 
-    quill.on("text-change", handleRichInputChange);
-    quill.root.addEventListener("paste", handleRichInputPaste, {
+    editor.events.on("change", handleRichInputChange);
+    editor.editor.addEventListener("paste", handleWordPaste, {
       capture: true,
     });
 
@@ -223,13 +246,13 @@ import {
   // Reveal the editor and place the typing caret in it.
   function showAndFocusInput() {
     showRichInput();
-    quill.focus();
+    editor.focus();
   }
 
   // Save both rich and plain representations, then refresh all input-derived UI.
   function handleRichInputChange() {
-    const inputText = normalisePlainText(quill.getText());
-    const inputHtml = inputText ? quill.root.innerHTML : "";
+    const inputText = normalisePlainText(editor.editor.textContent || "");
+    const inputHtml = inputText ? editor.value : "";
 
     setState({
       inputHtml,
@@ -247,26 +270,20 @@ import {
     scheduleAutoConvert();
   }
 
-  // Prefer sanitised HTML on paste so inline formatting survives conversion safely.
-  function handleRichInputPaste(event) {
-    const clipboard = event.clipboardData;
+  // Convert Word's paragraph-based list metadata before Jodit inserts it.
+  function handleWordPaste(event) {
+    const html = event.clipboardData?.getData("text/html") || "";
 
-    if (!clipboard) {
-      return;
-    }
-
-    const html = clipboard.getData("text/html");
-    const text = clipboard.getData("text/plain");
-
-    if (!html) {
+    if (!html || !globalThis.WordCleaner?.isWordHTML(html)) {
       return;
     }
 
     event.preventDefault();
     event.stopImmediatePropagation();
 
-    const cleaned = sanitiseInputHtml(html);
-    insertHtmlAtSelection(cleaned || escapeHtml(text));
+    const cleanedHtml = WordCleaner.clean(html);
+    editor.selection.insertHTML(sanitiseInputHtml(cleanedHtml));
+    handleRichInputChange();
   }
 
   // Allow a drop and give users visual feedback while data is over the target.
@@ -435,19 +452,19 @@ import {
     showRichInput();
 
     if (html) {
-      setEditorHtml(html);
+      pasteIntoEditor(html, text);
     } else {
-      quill.setText(text, "silent");
+      editor.value = escapeHtml(text);
+      handleRichInputChange();
     }
 
-    handleRichInputChange();
-    quill.focus();
+    editor.focus();
   }
 
   // Clear both editor/output and cancel pending automatic work.
   function clearInput() {
     clearTimeout(autoConvertTimer);
-    quill.setText("", "silent");
+    editor.value = "";
     elements.editorContainer.classList.add("hidden");
     elements.dropInstructions.classList.remove("hidden");
     elements.outputTextarea.value = "";
@@ -533,23 +550,21 @@ import {
     }
   }
 
-  // Insert cleaned paste HTML through Quill so its document model stays in sync.
-  function insertHtmlAtSelection(html) {
-    const range = quill.getSelection(true) ?? {
-      index: Math.max(0, quill.getLength() - 1),
-      length: 0,
-    };
+  // Apply the same Word normalisation to clipboard-button and drop input.
+  function pasteIntoEditor(html, text = "") {
+    const normalisedHtml = globalThis.WordCleaner?.isWordHTML(html)
+      ? WordCleaner.clean(html)
+      : html;
 
-    if (range.length) {
-      quill.deleteText(range.index, range.length, "user");
-    }
-
-    quill.clipboard.dangerouslyPasteHTML(range.index, html, "user");
+    editor.selection.insertHTML(
+      sanitiseInputHtml(normalisedHtml) || escapeHtml(text),
+    );
+    handleRichInputChange();
   }
 
-  // Replace the complete Quill document with sanitised HTML without firing edits.
+  // Replace the complete Jodit document with sanitised HTML.
   function setEditorHtml(html) {
-    quill.clipboard.dangerouslyPasteHTML(sanitiseInputHtml(html), "silent");
+    editor.value = sanitiseInputHtml(html);
   }
 
   // Treat manual output edits as the current saved draft rather than overwriting them.
@@ -892,7 +907,7 @@ import {
 
     clearTimeout(autoConvertTimer);
 
-    quill.setText("", "silent");
+    editor.value = "";
     elements.editorContainer.classList.add("hidden");
     elements.dropInstructions.classList.remove("hidden");
     elements.outputTextarea.value = "";
@@ -910,7 +925,7 @@ import {
   // Calculate current input word/character totals from the editor's visible text.
   function updateInputStats() {
     const text = normalisePlainText(
-      quill?.getText() || state.inputText || "",
+      editor?.editor?.textContent || state.inputText || "",
     );
     const words = countWords(text);
 

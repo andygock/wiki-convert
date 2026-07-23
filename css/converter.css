@@ -191,18 +191,43 @@
 
 .editor-container {
   width: 100%;
+  height: 480px;
   min-height: 480px;
   background: var(--background-deep);
 }
 
-.editor-container .ql-toolbar.ql-snow {
-  border: 0;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
+.jodit-container,
+.jodit-popup,
+.jodit-dialog {
+  --jd-color-background-default: var(--background-deep);
+  --jd-color-background-gray: var(--surface);
+  --jd-color-background-light-gray: var(--surface-raised);
+  --jd-color-background-button-hover: var(--surface-hover);
+  --jd-color-border: var(--border);
+  --jd-color-border-dark: var(--border-strong);
+  --jd-color-border-active: var(--primary);
+  --jd-color-default: var(--text);
+  --jd-color-text: var(--text);
+  --jd-color-icon: var(--text);
+  --jd-color-placeholder: var(--text-muted);
+  --jd-color-panel: var(--surface-raised);
+  --jd-dark-background-color: var(--background-deep);
+  --jd-dark-background-darknes: var(--background-deep);
+  --jd-dark-background-ligher: var(--surface-raised);
+  --jd-dark-border-color: var(--border);
+  --jd-dark-icon-color: var(--text);
+  --jd-dark-text-color: var(--text-strong);
+  --jd-dark-toolbar-color: var(--surface);
+  --jd-dark-toolbar-seperator-color1: var(--border);
+  --jd-dark-toolbar-seperator-color2: var(--border);
+  --jd-dark-toolbar-seperator-color3: var(--border-strong);
 }
 
-.editor-container .ql-container.ql-snow {
-  min-height: 435px;
+.editor-container .jodit-container {
+  display: flex;
+  height: 100% !important;
+  min-height: 100%;
+  flex-direction: column;
   border: 0;
   background: var(--background-deep);
   color: var(--text-strong);
@@ -210,92 +235,74 @@
   font-size: 15px;
 }
 
-.editor-container .ql-editor {
+.editor-container .jodit-toolbar__box {
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.editor-container .jodit-toolbar-editor-collection {
+  background: var(--surface);
+}
+
+.editor-container .jodit-workplace {
+  flex: 1 1 auto;
+  min-height: 435px;
+  border: 0;
+  background: var(--background-deep);
+}
+
+.editor-container .jodit-wysiwyg {
+  height: 100% !important;
   min-height: 435px;
   padding: 18px;
+  background: var(--background-deep);
+  color: var(--text-strong);
   line-height: 1.65;
 }
 
-.editor-container .ql-editor.ql-blank::before {
-  left: 18px;
-  right: 18px;
+.editor-container .jodit-placeholder {
   color: var(--text-muted);
   font-style: normal;
 }
 
-.editor-container .ql-editor img {
+.editor-container .jodit-wysiwyg img {
   max-width: 100%;
   height: auto;
 }
 
-.editor-container .ql-editor table {
+.editor-container .jodit-wysiwyg table {
   max-width: 100%;
   border-collapse: collapse;
 }
 
-.editor-container .ql-editor td,
-.editor-container .ql-editor th {
+.editor-container .jodit-wysiwyg td,
+.editor-container .jodit-wysiwyg th {
   padding: 5px;
   border: 1px solid var(--border);
 }
 
-.editor-container .ql-snow .ql-stroke {
-  stroke: var(--text);
-}
-
-.editor-container .ql-snow .ql-fill,
-.editor-container .ql-snow .ql-stroke.ql-fill {
-  fill: var(--text);
-}
-
-.editor-container .ql-snow .ql-picker {
+.editor-container .jodit-toolbar-button__button,
+.editor-container .jodit-toolbar-button__trigger,
+.editor-container .jodit-toolbar-button__text {
   color: var(--text);
 }
 
-.editor-container .ql-snow button:hover .ql-stroke,
-.editor-container .ql-snow button:focus .ql-stroke,
-.editor-container .ql-snow button.ql-active .ql-stroke,
-.editor-container .ql-snow .ql-picker-label:hover .ql-stroke,
-.editor-container .ql-snow .ql-picker-label.ql-active .ql-stroke,
-.editor-container .ql-snow .ql-picker-item:hover .ql-stroke,
-.editor-container .ql-snow .ql-picker-item.ql-selected .ql-stroke {
-  stroke: var(--primary);
-}
-
-.editor-container .ql-snow button:hover .ql-fill,
-.editor-container .ql-snow button:focus .ql-fill,
-.editor-container .ql-snow button.ql-active .ql-fill {
-  fill: var(--primary);
-}
-
-.editor-container .ql-snow .ql-picker-label:hover,
-.editor-container .ql-snow .ql-picker-label.ql-active,
-.editor-container .ql-snow .ql-picker-item:hover,
-.editor-container .ql-snow .ql-picker-item.ql-selected {
+.editor-container .jodit-toolbar-button__button:hover,
+.editor-container .jodit-toolbar-button__button:focus,
+.editor-container .jodit-toolbar-button_active .jodit-toolbar-button__button {
+  background: var(--surface-hover);
   color: var(--primary);
 }
 
-.editor-container .ql-snow .ql-picker-options {
+.editor-container .jodit-popup {
   border-color: var(--border-strong);
   background: var(--surface-raised);
   box-shadow: 0 8px 20px rgb(0 0 0 / 28%);
 }
 
-.editor-container .ql-snow a {
+.editor-container .jodit-wysiwyg a {
   color: var(--primary);
-}
-
-.editor-container .ql-snow .ql-tooltip {
-  border-color: var(--border-strong);
-  background: var(--surface-raised);
-  box-shadow: 0 8px 20px rgb(0 0 0 / 28%);
-  color: var(--text);
-}
-
-.editor-container .ql-snow .ql-tooltip input[type="text"] {
-  border-color: var(--border-strong);
-  background: var(--background-deep);
-  color: var(--text-strong);
 }
 
 .output-wrapper {

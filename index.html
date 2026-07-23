@@ -4,6 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob:; connect-src 'none'; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'"
+    />
+    <meta
       name="description"
       content="Convert rich text copied from Microsoft Word and other applications into clean MediaWiki markup entirely in your browser."
     />
@@ -13,7 +17,7 @@
     <link rel="icon" type="image/svg+xml" href="./icon.svg" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <link
-      href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css"
+      href="https://cdn.jsdelivr.net/npm/jodit@4.13.8/es2021/jodit.min.css"
       rel="stylesheet"
     />
   </head>
@@ -419,7 +423,8 @@
       aria-live="polite"
       aria-atomic="false"
     ></div>
-    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jodit@4.13.8/es2021/jodit.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/word-paste-editor@1.0.2/dist/word-cleaner.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/turndown@7.2.4/dist/turndown.js"></script>
     <script type="module" src="./js/app.js"></script>
   </body>
