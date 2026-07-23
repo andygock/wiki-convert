@@ -106,8 +106,7 @@ textarea,
 }
 
 .app-shell {
-  display: grid;
-  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  display: block;
   min-height: 100vh;
 }
 
@@ -223,7 +222,7 @@ textarea,
 
 .main-column {
   display: flex;
-  grid-column: 2;
+  width: 100%;
   min-height: 100vh;
   min-width: 0;
   flex-direction: column;
@@ -249,6 +248,12 @@ textarea,
   min-width: 0;
   align-items: center;
   gap: 12px;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .mobile-menu-button {
@@ -306,6 +311,57 @@ textarea,
 main {
   flex: 1;
   padding: 24px;
+}
+
+.modal {
+  width: min(920px, calc(100vw - 32px));
+  max-height: min(820px, calc(100vh - 32px));
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  background: var(--background);
+  color: var(--text);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 55%);
+}
+
+.modal::backdrop {
+  background: rgb(0 0 0 / 68%);
+  backdrop-filter: blur(3px);
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-raised);
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.modal-header p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.modal-body {
+  max-height: calc(100vh - 130px);
+  padding: 20px;
+  overflow: auto;
+}
+
+#settings-modal .settings-grid {
+  grid-template-columns: 1fr;
+}
+
+.mobile-menu-button {
+  display: none !important;
 }
 
 .app-footer {

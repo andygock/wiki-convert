@@ -1,62 +1,32 @@
 (() => {
   "use strict";
 
-  // All application data is deliberately browser-local. Bumping this key creates
-  // a clean storage namespace when the saved-state schema changes.
-  const STORAGE_KEY = "wikiconvert-state-v1";
   // Debounce typing so auto-convert runs only after the user pauses briefly.
   const AUTO_CONVERT_DELAY_MS = 450;
 
   // This is both the first-run state and the schema fallback for older/corrupt
   // saved data. Keep every user-persisted field represented here.
   const defaultState = {
-    currentView: "converter",
     inputHtml: "",
     inputText: "",
     output: "",
     outputHeadingBase: "",
     headingLevelOffset: 0,
-    history: [],
     settings: {
       autoConvert: true,
       preserveLineBreaks: false,
       externalLinks: true,
       tableClass: "wikitable",
-      saveHistory: true,
-      historyLimit: 10,
-    },
-  };
-
-  // View-specific text is centralised so navigation only needs a view name.
-  const pageMetadata = {
-    converter: {
-      title: "MediaWiki Converter",
-      subtitle: "Paste or drop formatted content and convert it locally",
-    },
-    history: {
-      title: "Conversion History",
-      subtitle: "Review and reuse recent browser-local conversions",
-    },
-    settings: {
-      title: "Settings",
-      subtitle: "Configure conversion behaviour and local storage",
-    },
-    about: {
-      title: "About WikiConvert",
-      subtitle: "Supported markup, privacy, shortcuts, and limitations",
     },
   };
 
   // Cache every DOM dependency once. The rest of the script refers to this map
   // instead of repeatedly querying the document.
   const elements = {
-    sidebar: document.querySelector("#sidebar"),
-    sidebarBackdrop: document.querySelector("#sidebar-backdrop"),
-    mobileMenuButton: document.querySelector("#mobile-menu-button"),
-    nav: document.querySelector(".sidebar-nav"),
-    pageTitle: document.querySelector("#page-title"),
-    pageSubtitle: document.querySelector("#page-subtitle"),
-    views: [...document.querySelectorAll("[data-view-container]")],
+    settingsModal: document.querySelector("#settings-modal"),
+    aboutModal: document.querySelector("#about-modal"),
+    openSettingsButton: document.querySelector("#open-settings-button"),
+    openAboutButton: document.querySelector("#open-about-button"),
 
     dropZone: document.querySelector("#drop-zone"),
     dropInstructions: document.querySelector("#drop-instructions"),
@@ -85,84 +55,34 @@
     outputLines: document.querySelector("#output-lines"),
     outputChars: document.querySelector("#output-chars"),
 
-    historyList: document.querySelector("#history-list"),
-    clearHistoryButton: document.querySelector("#clear-history-button"),
-
     settingAutoConvert: document.querySelector("#setting-auto-convert"),
     settingPreserveLineBreaks: document.querySelector(
       "#setting-preserve-line-breaks",
     ),
     settingExternalLinks: document.querySelector("#setting-external-links"),
     settingTableClass: document.querySelector("#setting-table-class"),
-    settingSaveHistory: document.querySelector("#setting-save-history"),
-    settingHistoryLimit: document.querySelector("#setting-history-limit"),
-    resetApplicationButton: document.querySelector("#reset-application-button"),
-
-    storageStatus: document.querySelector("#storage-status"),
     toastRegion: document.querySelector("#toast-region"),
   };
 
   // Runtime-only flags are not stored: a page reload must never resume an
   // in-progress conversion or a stale debounce timer.
-  let state = loadState();
+  let state = structuredClone(defaultState);
   let autoConvertTimer = null;
   let isConverting = false;
   let quill = null;
 
-  // Read and validate the local draft, merging it onto the current defaults.
-  function loadState() {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-
-      if (!saved) {
-        return structuredClone(defaultState);
-      }
-
-      const parsed = JSON.parse(saved);
-
-      return {
-        ...structuredClone(defaultState),
-        ...parsed,
-        settings: {
-          ...defaultState.settings,
-          ...(parsed.settings ?? {}),
-        },
-        history: Array.isArray(parsed.history) ? parsed.history : [],
-      };
-    } catch {
-      return structuredClone(defaultState);
-    }
-  }
-
-  // Persist the complete state and reflect whether browser storage succeeded.
-  function persistState() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      elements.storageStatus.textContent = "State saved locally";
-    } catch {
-      elements.storageStatus.textContent = "Local storage unavailable";
-    }
-  }
-
-  // Apply a shallow state update; callers can suppress storage during startup.
-  function setState(updates, { persist = true } = {}) {
+  // Apply an in-memory state update. Nothing is persisted between page loads.
+  function setState(updates) {
     state = {
       ...state,
       ...updates,
     };
-
-    if (persist) {
-      persistState();
-    }
   }
 
   // Restore UI from state, calculate derived UI, then attach event handlers.
   function initialise() {
     initialiseQuill();
     hydrateSettings();
-    restoreDraft();
-    renderHistory();
-    switchView(state.currentView || "converter", false);
     updateInputStats();
     updateOutputStats();
     updateButtons();
@@ -191,15 +111,13 @@
     quill.root.setAttribute("spellcheck", "true");
   }
 
-  // Copy persisted settings into the settings form controls.
+  // Copy session settings into the settings form controls.
   function hydrateSettings() {
     elements.settingAutoConvert.checked = state.settings.autoConvert;
     elements.settingPreserveLineBreaks.checked =
       state.settings.preserveLineBreaks;
     elements.settingExternalLinks.checked = state.settings.externalLinks;
     elements.settingTableClass.value = state.settings.tableClass;
-    elements.settingSaveHistory.checked = state.settings.saveHistory;
-    elements.settingHistoryLimit.value = String(state.settings.historyLimit);
   }
 
   // Rebuild the editable rich input and output textarea from a saved draft.
@@ -221,11 +139,24 @@
     }
   }
 
-  // Register all delegated navigation, editor, clipboard, history, and shortcut handlers.
+  // Register editor, modal, clipboard, settings, and shortcut handlers.
   function bindEvents() {
-    elements.nav.addEventListener("click", handleNavigation);
-    elements.mobileMenuButton.addEventListener("click", toggleMobileMenu);
-    elements.sidebarBackdrop.addEventListener("click", closeMobileMenu);
+    elements.openSettingsButton.addEventListener("click", () => {
+      elements.settingsModal.showModal();
+    });
+    elements.openAboutButton.addEventListener("click", () => {
+      elements.aboutModal.showModal();
+    });
+    document.querySelectorAll(".modal-close").forEach((button) => {
+      button.addEventListener("click", () => button.closest("dialog").close());
+    });
+    [elements.settingsModal, elements.aboutModal].forEach((modal) => {
+      modal.addEventListener("click", (event) => {
+        if (event.target === modal) {
+          modal.close();
+        }
+      });
+    });
 
     elements.dropInstructions.addEventListener("click", showAndFocusInput);
     elements.dropInstructions.addEventListener("keydown", (event) => {
@@ -265,9 +196,6 @@
     elements.copyButton.addEventListener("click", copyOutput);
     elements.outputTextarea.addEventListener("input", handleOutputChange);
 
-    elements.historyList.addEventListener("click", handleHistoryAction);
-    elements.clearHistoryButton.addEventListener("click", clearHistory);
-
     elements.settingAutoConvert.addEventListener("change", updateSettings);
     elements.settingPreserveLineBreaks.addEventListener(
       "change",
@@ -275,82 +203,7 @@
     );
     elements.settingExternalLinks.addEventListener("change", updateSettings);
     elements.settingTableClass.addEventListener("change", updateSettings);
-    elements.settingSaveHistory.addEventListener("change", updateSettings);
-    elements.settingHistoryLimit.addEventListener("change", updateSettings);
-    elements.resetApplicationButton.addEventListener("click", resetApplication);
-
     document.addEventListener("keydown", handleKeyboardShortcuts);
-    window.addEventListener("resize", () => {
-      if (window.innerWidth > 820) {
-        closeMobileMenu();
-      }
-    });
-  }
-
-  // Use event delegation to identify a clicked view button in the sidebar.
-  function handleNavigation(event) {
-    const button = event.target.closest("[data-view]");
-
-    if (!button) {
-      return;
-    }
-
-    switchView(button.dataset.view);
-    closeMobileMenu();
-  }
-
-  // Show exactly one view and synchronise nav accessibility state and page heading.
-  function switchView(viewName, shouldPersist = true) {
-    if (!pageMetadata[viewName]) {
-      viewName = "converter";
-    }
-
-    elements.views.forEach((view) => {
-      view.classList.toggle("hidden", view.dataset.viewContainer !== viewName);
-    });
-
-    document.querySelectorAll("[data-view]").forEach((button) => {
-      const active = button.dataset.view === viewName;
-      button.classList.toggle("active", active);
-
-      if (active) {
-        button.setAttribute("aria-current", "page");
-      } else {
-        button.removeAttribute("aria-current");
-      }
-    });
-
-    const metadata = pageMetadata[viewName];
-    elements.pageTitle.textContent = metadata.title;
-    elements.pageSubtitle.textContent = metadata.subtitle;
-
-    setState(
-      {
-        currentView: viewName,
-      },
-      {
-        persist: shouldPersist,
-      },
-    );
-
-    if (viewName === "history") {
-      renderHistory();
-    }
-  }
-
-  // Toggle the small-screen sidebar and its backdrop as a single UI state.
-  function toggleMobileMenu() {
-    const willOpen = !elements.sidebar.classList.contains("open");
-    elements.sidebar.classList.toggle("open", willOpen);
-    elements.sidebarBackdrop.classList.toggle("hidden", !willOpen);
-    elements.mobileMenuButton.setAttribute("aria-expanded", String(willOpen));
-  }
-
-  // Close the small-screen sidebar, including its accessibility state.
-  function closeMobileMenu() {
-    elements.sidebar.classList.remove("open");
-    elements.sidebarBackdrop.classList.add("hidden");
-    elements.mobileMenuButton.setAttribute("aria-expanded", "false");
   }
 
   // Replace the empty-state instructions with the contenteditable input.
@@ -651,7 +504,6 @@
 
       if (output) {
         setStatus(elements.outputStatus, "Conversion complete", "success");
-        saveHistoryEntry(output);
       } else {
         setStatus(
           elements.outputStatus,
@@ -1663,29 +1515,21 @@
       preserveLineBreaks: elements.settingPreserveLineBreaks.checked,
       externalLinks: elements.settingExternalLinks.checked,
       tableClass: elements.settingTableClass.value,
-      saveHistory: elements.settingSaveHistory.checked,
-      historyLimit: Number(elements.settingHistoryLimit.value),
     };
-
-    const history = state.history.slice(0, settings.historyLimit);
 
     setState({
       settings,
-      history,
     });
-
-    renderHistory();
 
     if (state.inputText.trim() && settings.autoConvert) {
       scheduleAutoConvert();
     }
 
-    showToast("Settings saved locally.", "success");
+    showToast("Settings updated for this session.", "success");
   }
 
-  // Return storage and UI to defaults, including deleting the old persisted payload.
+  // Return the in-memory UI to defaults.
   function resetApplication() {
-    localStorage.removeItem(STORAGE_KEY);
     state = structuredClone(defaultState);
 
     clearTimeout(autoConvertTimer);
@@ -1696,14 +1540,11 @@
     elements.outputTextarea.value = "";
 
     hydrateSettings();
-    renderHistory();
     updateInputStats();
     updateOutputStats();
     updateButtons();
     setStatus(elements.inputStatus, "Waiting for input");
     setStatus(elements.outputStatus, "No conversion yet");
-    switchView("converter");
-    persistState();
 
     showToast("Application data reset.", "info");
   }
@@ -1827,7 +1668,6 @@
 
     if (event.shiftKey && event.key.toLowerCase() === "v") {
       event.preventDefault();
-      switchView("converter");
       showAndFocusInput();
     }
   }

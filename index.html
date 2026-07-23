@@ -20,85 +20,31 @@
 
   <body>
     <div class="app-shell">
-      <aside class="sidebar" id="sidebar" aria-label="Application navigation">
-        <div class="brand">
-          <div class="brand-mark" aria-hidden="true">W</div>
-          <div class="brand-text">
-            <p class="brand-title">WikiConvert</p>
-            <p class="brand-subtitle">Rich text to MediaWiki</p>
-          </div>
-        </div>
-
-        <nav class="sidebar-nav" aria-label="Main navigation">
-          <button
-            class="nav-button active"
-            type="button"
-            data-view="converter"
-            aria-current="page"
-          >
-            <span class="nav-icon" aria-hidden="true">&gt;_</span>
-            <span>Converter</span>
-          </button>
-
-          <button class="nav-button" type="button" data-view="history">
-            <span class="nav-icon" aria-hidden="true">H</span>
-            <span>History</span>
-          </button>
-
-          <button class="nav-button" type="button" data-view="settings">
-            <span class="nav-icon" aria-hidden="true">S</span>
-            <span>Settings</span>
-          </button>
-
-          <button class="nav-button" type="button" data-view="about">
-            <span class="nav-icon" aria-hidden="true">i</span>
-            <span>About</span>
-          </button>
-        </nav>
-
-        <footer class="sidebar-footer">
-          <div>Local browser processing</div>
-          <div id="storage-status">State saved locally</div>
-        </footer>
-      </aside>
-
-      <div class="sidebar-backdrop hidden" id="sidebar-backdrop"></div>
-
       <div class="main-column">
         <header class="topbar">
           <div class="topbar-left">
-            <button
-              class="mobile-menu-button"
-              id="mobile-menu-button"
-              type="button"
-              aria-label="Open navigation"
-              aria-expanded="false"
-              aria-controls="sidebar"
-            >
-              ☰
-            </button>
+            <div class="brand-mark" aria-hidden="true">W</div>
 
             <div class="page-heading">
-              <h1 id="page-title">MediaWiki Converter</h1>
+              <h1 id="page-title">WikiConvert</h1>
               <p id="page-subtitle">
                 Paste or drop formatted content and convert it locally
               </p>
             </div>
           </div>
 
-          <div class="privacy-indicator" title="No data leaves this browser">
-            <span class="privacy-dot" aria-hidden="true"></span>
-            <span>Private and local</span>
+          <div class="topbar-actions">
+            <div class="privacy-indicator" title="No data leaves this browser">
+              <span class="privacy-dot" aria-hidden="true"></span>
+              <span>Private and local</span>
+            </div>
+            <button class="button" id="open-settings-button" type="button">Settings</button>
+            <button class="button" id="open-about-button" type="button">About</button>
           </div>
         </header>
 
         <main>
-          <section
-            class="view"
-            id="view-converter"
-            data-view-container="converter"
-            aria-labelledby="page-title"
-          >
+          <section aria-labelledby="page-title">
             <div class="converter-layout">
               <section class="panel" aria-labelledby="input-heading">
                 <header class="panel-header">
@@ -259,36 +205,15 @@
             </div>
           </section>
 
-          <section
-            class="view hidden"
-            id="view-history"
-            data-view-container="history"
-            aria-labelledby="page-title"
-          >
-            <div class="history-toolbar">
+          <dialog class="modal" id="settings-modal" aria-labelledby="settings-title">
+            <div class="modal-header">
               <div>
-                <h2>Conversion history</h2>
-                <p>Recent conversions stored only in this browser.</p>
+                <h2 id="settings-title">Settings</h2>
+                <p>Conversion options apply for this browser session only.</p>
               </div>
-
-              <button
-                class="button danger"
-                id="clear-history-button"
-                type="button"
-              >
-                Clear history
-              </button>
+              <button class="icon-button modal-close" type="button" aria-label="Close settings">×</button>
             </div>
-
-            <div class="history-list" id="history-list"></div>
-          </section>
-
-          <section
-            class="view hidden"
-            id="view-settings"
-            data-view-container="settings"
-            aria-labelledby="page-title"
-          >
+            <div class="modal-body">
             <div class="settings-grid">
               <article class="settings-card">
                 <header>
@@ -367,66 +292,19 @@
                 </div>
               </article>
 
-              <article class="settings-card">
-                <header>
-                  <h2>Storage</h2>
-                  <p>Manage browser-local application data</p>
-                </header>
-
-                <div class="settings-content">
-                  <div class="setting-row">
-                    <div class="setting-copy">
-                      <label for="setting-save-history"
-                        >Save conversion history</label
-                      >
-                      <p>Retain recent output for reuse after refreshing.</p>
-                    </div>
-
-                    <label class="toggle">
-                      <input id="setting-save-history" type="checkbox" />
-                      <span class="toggle-track" aria-hidden="true"></span>
-                    </label>
-                  </div>
-
-                  <div class="setting-row">
-                    <div class="setting-copy">
-                      <label for="setting-history-limit">History limit</label>
-                      <p>Maximum number of recent conversions to retain.</p>
-                    </div>
-
-                    <select class="select" id="setting-history-limit">
-                      <option value="5">5 conversions</option>
-                      <option value="10">10 conversions</option>
-                      <option value="20">20 conversions</option>
-                      <option value="50">50 conversions</option>
-                    </select>
-                  </div>
-
-                  <div class="setting-row">
-                    <div class="setting-copy">
-                      <span class="label">Reset application</span>
-                      <p>Delete input, output, history, and saved settings.</p>
-                    </div>
-
-                    <button
-                      class="button danger"
-                      id="reset-application-button"
-                      type="button"
-                    >
-                      Reset
-                    </button>
-                  </div>
-                </div>
-              </article>
             </div>
-          </section>
+            </div>
+          </dialog>
 
-          <section
-            class="view hidden"
-            id="view-about"
-            data-view-container="about"
-            aria-labelledby="page-title"
-          >
+          <dialog class="modal" id="about-modal" aria-labelledby="about-title">
+            <div class="modal-header">
+              <div>
+                <h2 id="about-title">About WikiConvert</h2>
+                <p>Supported markup, privacy, shortcuts, and limitations.</p>
+              </div>
+              <button class="icon-button modal-close" type="button" aria-label="Close about">×</button>
+            </div>
+            <div class="modal-body">
             <div class="about-grid">
               <article class="about-card">
                 <header>
@@ -463,8 +341,8 @@
                     service.
                   </p>
                   <p>
-                    Draft input, output, settings, and optional history are
-                    retained using browser localStorage.
+                    Input, output, and settings remain in memory only for the
+                    current tab and are discarded when it closes or reloads.
                   </p>
                 </div>
               </article>
@@ -518,7 +396,8 @@
                 </div>
               </article>
             </div>
-          </section>
+            </div>
+          </dialog>
         </main>
 
         <footer class="app-footer">
