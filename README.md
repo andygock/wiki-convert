@@ -14,7 +14,8 @@ WikiConvert turns rich text copied from Microsoft Word, LibreOffice, websites, e
 - Provides optional automatic conversion and configurable table markup
 - Saves drafts, settings, and optional conversion history in browser `localStorage`
 - Includes copy-to-clipboard support and keyboard shortcuts
-- Requires no build tools, package manager, backend, or external dependencies
+- Uses Quill and Turndown from pinned CDN releases; requires no build tools,
+  package manager, backend, or conversion service
 
 ## Getting started
 
@@ -45,7 +46,9 @@ Keyboard shortcuts:
 
 ## Privacy and storage
 
-All conversion runs locally in the browser. WikiConvert does not upload pasted content or use a third-party conversion service.
+All conversion runs locally in the browser. WikiConvert does not upload pasted
+content or use a third-party conversion service. The CDN is used only to
+download the application libraries; pasted content is never sent to it.
 
 Draft input, output, settings, and optional history are stored in the browser's `localStorage`. They can be removed with **Settings → Reset application** or by clearing the site's browser data.
 
@@ -61,7 +64,7 @@ css/
   responsive.css         Responsive and reduced-motion rules
 js/
   app.js                 Application state and browser interactions
-  converter.js           HTML sanitisation and MediaWiki conversion
+  converter.js           Turndown MediaWiki rules and HTML sanitisation
 ```
 
 ## License
